@@ -4,15 +4,28 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.Html
 import android.text.Spannable
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
+import android.util.Log
+import android.widget.TextView
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.RecyclerView.OnScrollListener
 import com.educards.scrollselectionviewdemo.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
 
     private val binding: ActivityMainBinding by lazy {
         DataBindingUtil.inflate(layoutInflater, R.layout.activity_main, null, false ) as ActivityMainBinding
+    }
+
+    private val layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
+
+    private val breakIterator = BreakIterator()
+
+    private val sentenceHighlightSpan by lazy {
+        ForegroundColorSpan(resources.getColor(R.color.purple_700))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,24 +39,42 @@ class MainActivity : AppCompatActivity() {
         val adapter = RecyclerViewAdapter(this, DEMO_DATA)
 
         binding.recyclerView.setHasFixedSize(true)
-        binding.recyclerView.layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
+        binding.recyclerView.layoutManager = layoutManager
         binding.recyclerView.adapter = adapter
+
+        binding.recyclerView.addOnScrollListener(object: OnScrollListener() {
+
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                val childCount = layoutManager.childCount
+                Log.d(TAG, "onScrolled [dx=$dx, dy=$dy, childCount=$childCount]")
+
+                for (childIndex in 0 until childCount) {
+                    val childView = layoutManager.getChildAt(childIndex) as TextView
+                    val spannable = childView.text as Spannable
+
+                    if (childView.y <= 0 && childView.bottom > 0) {
+                        val sentenceInterval = breakIterator.getSentenceInterval(spannable, 100)
+                        setSpan(spannable, sentenceInterval.first, sentenceInterval.second)
+                    } else {
+                        removeSpan(spannable)
+                    }
+                }
+            }
+        })
     }
 
-//    private fun setSpan(itemIndex: Int, spanStartIndex: Int, spanEndIndex: Int): Boolean {
-//
-//        return try {
-//            val spannable = data[itemIndex]
-//            blockSpannable.setSpan(span, spanStartIndex, spanEndIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-//            true
-//
-//        } catch (t: Throwable) {
-//            Log.e(RecyclerViewAdapter.TAG, "Setting the span failed", t)
-//            false
-//        }
-//    }
+    private fun setSpan(spannable: Spannable, spanStartIndex: Int, spanEndIndex: Int) {
+        spannable.setSpan(sentenceHighlightSpan, spanStartIndex, spanEndIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+    }
+
+    private fun removeSpan(spannable: Spannable) {
+        spannable.removeSpan(sentenceHighlightSpan)
+    }
 
     companion object {
+
+        private const val TAG = "MainActivity"
+
         private val DEMO_DATA: List<Spannable> = listOf(
             Html.fromHtml("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Sed felis eget velit aliquet sagittis id consectetur purus ut. Volutpat ac tincidunt vitae semper. Nec sagittis aliquam malesuada bibendum arcu vitae elementum. Volutpat maecenas volutpat blandit aliquam etiam erat velit scelerisque in. Enim ut sem viverra aliquet eget sit amet. Sodales neque sodales ut etiam sit amet nisl purus in. Egestas diam in arcu cursus. Pellentesque pulvinar pellentesque habitant morbi. Mauris pellentesque pulvinar pellentesque habitant. Faucibus ornare suspendisse sed nisi lacus sed viverra tellus in. Lectus proin nibh nisl condimentum id venenatis a. Mi in nulla posuere sollicitudin aliquam ultrices sagittis. Pharetra vel turpis nunc eget lorem dolor sed viverra. Dui vivamus arcu felis bibendum ut. Massa enim nec dui nunc mattis enim. Ut porttitor leo a diam sollicitudin.") as Spannable,
             Html.fromHtml("Pretium nibh ipsum consequat nisl vel pretium. Lacus vel facilisis volutpat est velit egestas dui. Elementum sagittis vitae et leo duis. Ultrices gravida dictum fusce ut placerat. Dignissim sodales ut eu sem integer. Elementum sagittis vitae et leo. Commodo ullamcorper a lacus vestibulum sed arcu non odio euismod. Est ullamcorper eget nulla facilisi. Integer eget aliquet nibh praesent tristique magna sit amet. Nulla pellentesque dignissim enim sit.") as Spannable,
