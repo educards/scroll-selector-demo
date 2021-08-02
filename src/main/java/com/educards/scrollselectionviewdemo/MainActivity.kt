@@ -6,7 +6,6 @@ import android.text.Html
 import android.text.Spannable
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
-import android.util.Log
 import android.widget.TextView
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -45,17 +44,29 @@ class MainActivity : AppCompatActivity() {
         binding.recyclerView.addOnScrollListener(object: OnScrollListener() {
 
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                val childCount = layoutManager.childCount
-                Log.d(TAG, "onScrolled [dx=$dx, dy=$dy, childCount=$childCount]")
 
-                for (childIndex in 0 until childCount) {
+                val yToHighlight = recyclerView.height / 2
+
+                val layoutManager = recyclerView.layoutManager as LinearLayoutManager
+
+                for (childIndex in 0 until layoutManager.childCount) {
                     val childView = layoutManager.getChildAt(childIndex) as TextView
                     val spannable = childView.text as Spannable
 
-                    if (childView.y <= 0 && childView.bottom > 0) {
-                        val sentenceInterval = breakIterator.getSentenceInterval(spannable, 100)
-                        setSpan(spannable, sentenceInterval.first, sentenceInterval.second)
-                    } else {
+                    var spanSet = false
+                    if (childView.y <= yToHighlight && yToHighlight < childView.bottom) {
+
+                        val lineOffsets = getLineOffsets(childView, yToHighlight)
+                        lineOffsets?.let {
+
+                            val sentenceDetectionOffset = lineOffsets.first + (lineOffsets.second - lineOffsets.first) / 2
+                            val sentenceInterval = breakIterator.getSentenceInterval(spannable, sentenceDetectionOffset)
+                            setSpan(spannable, sentenceInterval.first, sentenceInterval.second)
+                            spanSet = true
+                        }
+                    }
+
+                    if (!spanSet) {
                         removeSpan(spannable)
                     }
                 }
@@ -69,6 +80,24 @@ class MainActivity : AppCompatActivity() {
 
     private fun removeSpan(spannable: Spannable) {
         spannable.removeSpan(sentenceHighlightSpan)
+    }
+
+    /**
+     * @param y Y coordinate relative to `RecyclerView` containing the `textView`
+     * @return Corresponding start and end text offsets of the line located at the provided
+     * `y` position.
+     */
+    private fun getLineOffsets(textView: TextView, y: Int): Pair<Int, Int>? {
+        return if (textView.y <= y && y < textView.bottom) {
+            val lineY = (y - textView.y).toInt()
+            val line = textView.layout.getLineForVertical(lineY)
+            Pair(
+                textView.layout.getLineStart(line),
+                textView.layout.getLineEnd(line)
+            )
+        } else {
+            null
+        }
     }
 
     companion object {
