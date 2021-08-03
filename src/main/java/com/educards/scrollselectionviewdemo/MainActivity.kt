@@ -6,12 +6,15 @@ import android.text.Html
 import android.text.Spannable
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
+import android.util.Log
+import android.view.View
 import android.widget.TextView
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.OnScrollListener
 import com.educards.scrollselectionviewdemo.databinding.ActivityMainBinding
+import kotlin.math.absoluteValue
 
 class MainActivity : AppCompatActivity() {
 
@@ -45,33 +48,103 @@ class MainActivity : AppCompatActivity() {
 
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
 
-                val yToHighlight = recyclerView.height / 2
-
                 val layoutManager = recyclerView.layoutManager as LinearLayoutManager
 
-                for (childIndex in 0 until layoutManager.childCount) {
-                    val childView = layoutManager.getChildAt(childIndex) as TextView
-                    val spannable = childView.text as Spannable
+                // interested only in vertical changes (y)
+                if (dy != 0) {
 
-                    var spanSet = false
-                    if (childView.y <= yToHighlight && yToHighlight < childView.bottom) {
+                    var edgeDistanceY = computeEdgeDistance(adapter, 1000, dy > 0)
+                    if (BuildConfig.DEBUG) Log.d(TAG, "edgeDistanceY: $edgeDistanceY")
 
-                        val lineOffsets = getLineOffsets(childView, yToHighlight)
-                        lineOffsets?.let {
+                    val selectionY = calculateSelectionY()
 
-                            val sentenceDetectionOffset = lineOffsets.first + (lineOffsets.second - lineOffsets.first) / 2
-                            val sentenceInterval = breakIterator.getSentenceInterval(spannable, sentenceDetectionOffset)
-                            setSpan(spannable, sentenceInterval.first, sentenceInterval.second)
-                            spanSet = true
+                    for (childIndex in 0 until layoutManager.childCount) {
+                        val childView = layoutManager.getChildAt(childIndex) as TextView
+                        val spannable = childView.text as Spannable
+
+                        var spanSet = false
+                        if (childView.y <= selectionY && selectionY < childView.bottom) {
+
+                            val lineOffsets = getLineOffsets(childView, selectionY)
+                            lineOffsets?.let {
+
+                                val sentenceDetectionOffset = lineOffsets.first + (lineOffsets.second - lineOffsets.first) / 2
+                                val sentenceInterval = breakIterator.getSentenceInterval(spannable, sentenceDetectionOffset)
+                                setSpan(spannable, sentenceInterval.first, sentenceInterval.second)
+                                spanSet = true
+                            }
+                        }
+
+                        if (!spanSet) {
+                            removeSpan(spannable)
                         }
                     }
 
-                    if (!spanSet) {
-                        removeSpan(spannable)
-                    }
                 }
+
             }
         })
+    }
+
+    private fun computeEdgeDistance(adapter: RecyclerViewAdapter, watchAheadDistancePx: Int, scrollDirDown: Boolean): Int? {
+
+        var positionToEvaluate = if (scrollDirDown) layoutManager.findLastVisibleItemPosition() else layoutManager.findFirstVisibleItemPosition()
+
+        if (positionToEvaluate == RecyclerView.NO_POSITION) {
+            return null
+
+        } else {
+
+            val firstChild = layoutManager.findViewByPosition(positionToEvaluate)
+                ?: throw RuntimeException("Requested child view has not been laid out")
+
+            var exploredDistance: Int
+            if (scrollDirDown) {
+                positionToEvaluate++
+                exploredDistance = firstChild.y.toInt() + firstChild.height - binding.recyclerView.height
+            } else {
+                positionToEvaluate--
+                exploredDistance = firstChild.y.toInt()
+            }
+
+            val phantomViewHolder = adapter.onCreateViewHolder(binding.recyclerView, 0)
+
+            // Evaluate views until the watchAheadDistance is met
+            // and there are children to evaluate.
+            while (exploredDistance.absoluteValue < watchAheadDistancePx
+                && 0 <= positionToEvaluate && positionToEvaluate < adapter.itemCount) {
+
+                // Previously we evaluated the very first or the very last child view (depending on the scroll direction).
+                // The next view to examine will therefore lie beyond the drawable boundary.
+                // To detect the height of the next/previous child we need to measure it offscreen.
+                var childView = createPhantomChild(adapter, phantomViewHolder, positionToEvaluate)
+
+                if (scrollDirDown) {
+                    positionToEvaluate++
+                    exploredDistance += childView.measuredHeight
+                } else {
+                    positionToEvaluate--
+                    exploredDistance -= childView.measuredHeight
+                }
+            }
+
+            if (exploredDistance.absoluteValue >= watchAheadDistancePx) {
+                return if (scrollDirDown) Int.MAX_VALUE else Int.MIN_VALUE
+            } else {
+                return exploredDistance
+            }
+        }
+    }
+
+    private fun createPhantomChild(adapter: RecyclerViewAdapter, phantomViewHolder: RecyclerViewAdapter.ViewHolder, position: Int): View {
+        adapter.onBindViewHolder(phantomViewHolder, position)
+        val childView = phantomViewHolder.textView
+        layoutManager.measureChild(childView, 0, 0)
+        return childView
+    }
+
+    private fun calculateSelectionY(): Int {
+        return binding.recyclerView.height / 2
     }
 
     private fun setSpan(spannable: Spannable, spanStartIndex: Int, spanEndIndex: Int) {
