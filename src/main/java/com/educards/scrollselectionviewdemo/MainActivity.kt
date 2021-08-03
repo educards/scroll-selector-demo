@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.OnScrollListener
 import com.educards.scrollselectionviewdemo.databinding.ActivityMainBinding
 import kotlin.math.absoluteValue
+import kotlin.math.sign
 
 class MainActivity : AppCompatActivity() {
 
@@ -53,13 +54,13 @@ class MainActivity : AppCompatActivity() {
                 // interested only in vertical changes (y)
                 if (dy != 0) {
 
-                    var edgeDistanceY = computeEdgeDistance(adapter, 1000, dy > 0)
-                    if (BuildConfig.DEBUG) Log.d(TAG, "edgeDistanceY: $edgeDistanceY")
+                    val selectionY = calculateSelectionY(adapter, dy)
+                    if (BuildConfig.DEBUG) Log.d(TAG, "selectionY: $selectionY")
 
-                    val selectionY = calculateSelectionY()
-
-                    for (childIndex in 0 until layoutManager.childCount) {
-                        val childView = layoutManager.getChildAt(childIndex) as TextView
+                    val firstChildPos = layoutManager.findFirstVisibleItemPosition()
+                    val lastChildPos = layoutManager.findLastVisibleItemPosition()
+                    for (childPos in firstChildPos..lastChildPos) {
+                        val childView = layoutManager.findViewByPosition(childPos) as TextView
                         val spannable = childView.text as Spannable
 
                         var spanSet = false
@@ -143,15 +144,36 @@ class MainActivity : AppCompatActivity() {
         return childView
     }
 
-    private fun calculateSelectionY(): Int {
-        return binding.recyclerView.height / 2
+    private fun calculateSelectionY(adapter: RecyclerViewAdapter, dy: Int): Int {
+
+        val edgeDistanceY = computeEdgeDistance(adapter, WATCH_AHEAD_DISTANCE_PX, dy > 0)
+
+        val half = binding.recyclerView.height / 2
+
+        if (edgeDistanceY == null
+
+            // Note, we can't use the followng simpler to read version here:
+            // ('edgeDistanceY.absoluteValue >= WATCH_AHEAD_DISTANCE_PX')
+            // because Int.MIN_VALUE.absoluteValue returns also MIN_VALUE due to stack overflow.
+            || edgeDistanceY >= WATCH_AHEAD_DISTANCE_PX
+            || edgeDistanceY <= -WATCH_AHEAD_DISTANCE_PX)
+        {
+            return half
+
+        } else {
+            val direction = dy.sign
+            val distanceRatio = 1 - (edgeDistanceY.absoluteValue.toDouble() / WATCH_AHEAD_DISTANCE_PX)
+            return (half + half * distanceRatio * direction).toInt()
+        }
     }
 
     private fun setSpan(spannable: Spannable, spanStartIndex: Int, spanEndIndex: Int) {
+        if (BuildConfig.DEBUG) Log.d(TAG, "setSpan [start=$spanStartIndex, end=$spanEndIndex]")
         spannable.setSpan(sentenceHighlightSpan, spanStartIndex, spanEndIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
     }
 
     private fun removeSpan(spannable: Spannable) {
+        if (BuildConfig.DEBUG) Log.d(TAG, "removeSpan")
         spannable.removeSpan(sentenceHighlightSpan)
     }
 
@@ -184,6 +206,8 @@ class MainActivity : AppCompatActivity() {
             Html.fromHtml("Sed sed risus pretium quam vulputate dignissim. Morbi blandit cursus risus at ultrices. Nisi scelerisque eu ultrices vitae auctor eu augue ut. Hac habitasse platea dictumst quisque sagittis. Ut ornare lectus sit amet. Varius duis at consectetur lorem donec massa sapien. Ante metus dictum at tempor commodo ullamcorper. Vel quam elementum pulvinar etiam. Duis at tellus at urna. Imperdiet massa tincidunt nunc pulvinar sapien et ligula ullamcorper malesuada. Quam nulla porttitor massa id neque aliquam vestibulum morbi blandit. Tellus id interdum velit laoreet id donec ultrices tincidunt. Vitae ultricies leo integer malesuada nunc. Erat velit scelerisque in dictum non consectetur a erat. Tortor aliquam nulla facilisi cras. Semper risus in hendrerit gravida. Neque convallis a cras semper auctor neque vitae. Bibendum enim facilisis gravida neque convallis. Magna ac placerat vestibulum lectus mauris ultrices eros. Gravida cum sociis natoque penatibus et magnis.") as Spannable,
             Html.fromHtml("Egestas erat imperdiet sed euismod nisi porta lorem mollis aliquam. Nunc pulvinar sapien et ligula ullamcorper malesuada. Metus vulputate eu scelerisque felis imperdiet proin. Aenean pharetra magna ac placerat vestibulum lectus mauris ultrices. Id leo in vitae turpis massa sed elementum. Justo donec enim diam vulputate. Scelerisque in dictum non consectetur. Varius quam quisque id diam. Amet nulla facilisi morbi tempus iaculis. Enim sit amet venenatis urna. Orci phasellus egestas tellus rutrum tellus pellentesque eu tincidunt tortor. Bibendum neque egestas congue quisque egestas diam. Nunc sed id semper risus in hendrerit gravida. A cras semper auctor neque vitae tempus quam pellentesque nec. Purus sit amet luctus venenatis lectus magna fringilla urna porttitor. Gravida arcu ac tortor dignissim convallis aenean et tortor. Urna condimentum mattis pellentesque id nibh tortor id aliquet lectus. Aliquam purus sit amet luctus venenatis lectus magna. Suscipit tellus mauris a diam maecenas sed enim. Est ultricies integer quis auctor elit sed vulputate.") as Spannable
         )
+
+        private const val WATCH_AHEAD_DISTANCE_PX = 1000
     }
 
 }
