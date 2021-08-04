@@ -13,6 +13,7 @@ import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.OnScrollListener
+import androidx.recyclerview.widget.SimpleItemAnimator
 import com.educards.scrollselectionviewdemo.databinding.ActivityMainBinding
 import kotlin.math.absoluteValue
 import kotlin.math.sign
@@ -31,6 +32,9 @@ class MainActivity : AppCompatActivity() {
         ForegroundColorSpan(resources.getColor(R.color.purple_700))
     }
 
+    private var sentenceHighlightItemPos = -1
+    private var sentenceHighlightOffsets: Pair<Int, Int>? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
@@ -45,11 +49,16 @@ class MainActivity : AppCompatActivity() {
         binding.recyclerView.layoutManager = layoutManager
         binding.recyclerView.adapter = adapter
 
+        // The items of recyclerView are frequently updated to render the updated
+        // highlight span. However, having animations turned on while scrolling
+        // the recyclerView and also rendering the updated item in the same time
+        // causes the UI to flicker.
+        // Source: https://stackoverflow.com/a/42379756/915756
+        disableItemAnimations()
+
         binding.recyclerView.addOnScrollListener(object: OnScrollListener() {
 
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-
-                val layoutManager = recyclerView.layoutManager as LinearLayoutManager
 
                 // interested only in vertical changes (y)
                 if (dy != 0) {
@@ -57,35 +66,59 @@ class MainActivity : AppCompatActivity() {
                     val selectionY = calculateSelectionY(adapter, dy)
                     if (BuildConfig.DEBUG) Log.d(TAG, "selectionY: $selectionY")
 
+                    val layoutManager = recyclerView.layoutManager as LinearLayoutManager
                     val firstChildPos = layoutManager.findFirstVisibleItemPosition()
                     val lastChildPos = layoutManager.findLastVisibleItemPosition()
                     for (childPos in firstChildPos..lastChildPos) {
-                        val childView = layoutManager.findViewByPosition(childPos) as TextView
-                        val spannable = childView.text as Spannable
+                        if (BuildConfig.DEBUG) Log.d(TAG, "childPos: $childPos")
+                        val childView = findChildByPosition(layoutManager, childPos)
 
-                        var spanSet = false
-                        if (childView.y <= selectionY && selectionY < childView.bottom) {
+                        if (childView != null && childView.y <= selectionY && selectionY < childView.bottom) {
 
                             val lineOffsets = getLineOffsets(childView, selectionY)
-                            lineOffsets?.let {
+                            if (lineOffsets != null) {
 
-                                val sentenceDetectionOffset = lineOffsets.first + (lineOffsets.second - lineOffsets.first) / 2
-                                val sentenceInterval = breakIterator.getSentenceInterval(spannable, sentenceDetectionOffset)
-                                setSpan(spannable, sentenceInterval.first, sentenceInterval.second)
-                                spanSet = true
+                                // If the span was previously added to another spannable (view)
+                                // then we have to explicitly remove the span from this view.
+                                if (sentenceHighlightItemPos >= 0 && sentenceHighlightItemPos != childPos) {
+                                    val textView = findChildByPosition(layoutManager, sentenceHighlightItemPos)
+                                    if (textView != null) {
+                                        removeSpan(getSpannable(textView))
+
+                                        // notify UI changed
+                                        binding.recyclerView.post { adapter.notifyItemChanged(sentenceHighlightItemPos) }
+                                    }
+                                }
+
+                                if (sentenceHighlightOffsets?.equals(lineOffsets) == false) {
+                                    val spannable = getSpannable(childView)
+                                    val sentenceDetectionOffset = lineOffsets.first + (lineOffsets.second - lineOffsets.first) / 2
+                                    val sentenceInterval = breakIterator.getSentenceInterval(spannable, sentenceDetectionOffset)
+                                    setSpan(spannable, sentenceInterval.first, sentenceInterval.second)
+
+                                    // notify UI changed
+                                    binding.recyclerView.post { adapter.notifyItemChanged(childPos) }
+                                }
+
+                                sentenceHighlightItemPos = childPos
+                                sentenceHighlightOffsets = lineOffsets
                             }
                         }
-
-                        if (!spanSet) {
-                            removeSpan(spannable)
-                        }
                     }
-
                 }
-
             }
         })
     }
+
+    private fun disableItemAnimations() {
+        (binding.recyclerView.itemAnimator as SimpleItemAnimator).supportsChangeAnimations = false
+    }
+
+    private fun findChildByPosition(layoutManager: LinearLayoutManager, childPos: Int): TextView? {
+        return layoutManager.findViewByPosition(childPos) as TextView
+    }
+
+    private fun getSpannable(textView: TextView): Spannable = textView?.text as Spannable
 
     private fun computeEdgeDistance(adapter: RecyclerViewAdapter, watchAheadDistancePx: Int, scrollDirDown: Boolean): Int? {
 
@@ -207,7 +240,7 @@ class MainActivity : AppCompatActivity() {
             Html.fromHtml("Egestas erat imperdiet sed euismod nisi porta lorem mollis aliquam. Nunc pulvinar sapien et ligula ullamcorper malesuada. Metus vulputate eu scelerisque felis imperdiet proin. Aenean pharetra magna ac placerat vestibulum lectus mauris ultrices. Id leo in vitae turpis massa sed elementum. Justo donec enim diam vulputate. Scelerisque in dictum non consectetur. Varius quam quisque id diam. Amet nulla facilisi morbi tempus iaculis. Enim sit amet venenatis urna. Orci phasellus egestas tellus rutrum tellus pellentesque eu tincidunt tortor. Bibendum neque egestas congue quisque egestas diam. Nunc sed id semper risus in hendrerit gravida. A cras semper auctor neque vitae tempus quam pellentesque nec. Purus sit amet luctus venenatis lectus magna fringilla urna porttitor. Gravida arcu ac tortor dignissim convallis aenean et tortor. Urna condimentum mattis pellentesque id nibh tortor id aliquet lectus. Aliquam purus sit amet luctus venenatis lectus magna. Suscipit tellus mauris a diam maecenas sed enim. Est ultricies integer quis auctor elit sed vulputate.") as Spannable
         )
 
-        private const val WATCH_AHEAD_DISTANCE_PX = 1000
+        private const val WATCH_AHEAD_DISTANCE_PX = 5000
     }
 
 }
