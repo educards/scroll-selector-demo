@@ -41,6 +41,11 @@ class MainActivity : AppCompatActivity() {
         initRecyclerView()
     }
 
+    private fun updateSelectionYDebugView(selectionYRatio: Double) {
+        binding.selectionYDebugView.selectionYRatio = selectionYRatio
+        binding.selectionYDebugView.invalidate()
+    }
+
     private fun initRecyclerView() {
 
         val adapter = RecyclerViewAdapter(this, DEMO_DATA)
@@ -63,8 +68,11 @@ class MainActivity : AppCompatActivity() {
                 // interested only in vertical changes (y)
                 if (dy != 0) {
 
-                    val selectionY = calculateSelectionY(adapter, dy)
+                    val selectionYRatio = calculateSelectionYRatio(adapter, dy)
+                    val selectionY = calculateSelectionY(selectionYRatio)
                     if (BuildConfig.DEBUG) Log.d(TAG, "selectionY: $selectionY")
+
+                    updateSelectionYDebugView(selectionYRatio)
 
                     val layoutManager = recyclerView.layoutManager as LinearLayoutManager
                     val firstChildPos = layoutManager.findFirstVisibleItemPosition()
@@ -177,11 +185,9 @@ class MainActivity : AppCompatActivity() {
         return childView
     }
 
-    private fun calculateSelectionY(adapter: RecyclerViewAdapter, dy: Int): Int {
+    private fun calculateSelectionYRatio(adapter: RecyclerViewAdapter, dy: Int): Double {
 
         val edgeDistanceY = computeEdgeDistance(adapter, WATCH_AHEAD_DISTANCE_PX, dy > 0)
-
-        val half = binding.recyclerView.height / 2
 
         if (edgeDistanceY == null
 
@@ -191,13 +197,25 @@ class MainActivity : AppCompatActivity() {
             || edgeDistanceY >= WATCH_AHEAD_DISTANCE_PX
             || edgeDistanceY <= -WATCH_AHEAD_DISTANCE_PX)
         {
-            return half
+            return 0.0
 
         } else {
             val direction = dy.sign
             val distanceRatio = 1 - (edgeDistanceY.absoluteValue.toDouble() / WATCH_AHEAD_DISTANCE_PX)
-            return (half + half * distanceRatio * direction).toInt()
+            return distanceRatio * direction
         }
+
+    }
+
+    /**
+     * @param selectionYRatio
+     * * -1 top
+     * * 0 middle
+     * * 1 bottom
+     */
+    private fun calculateSelectionY(selectionYRatio: Double): Int {
+        val half = binding.recyclerView.height / 2
+        return (half + half * selectionYRatio).toInt()
     }
 
     private fun setSpan(spannable: Spannable, spanStartIndex: Int, spanEndIndex: Int) {
