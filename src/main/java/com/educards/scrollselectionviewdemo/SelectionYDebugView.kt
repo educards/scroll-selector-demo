@@ -12,7 +12,7 @@ import android.view.View
  */
 class SelectionYDebugView: View {
 
-    var selectionYRatio: Double = 0.0
+    var selectionYData: SelectionYData? = null
 
     private val paint = Paint().apply {
         isAntiAlias = true
@@ -31,10 +31,10 @@ class SelectionYDebugView: View {
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
 
-        val half = height/2
-
-        val selectionY = (half + half * selectionYRatio).toFloat()
-        canvas?.drawLine(0f, selectionY, width.toFloat(), selectionY, paint)
+        selectionYData?.selectionYRatio?.let { selectionYRatio ->
+            val selectionYPx = (height * selectionYRatio).toFloat()
+            canvas?.drawLine(0f, selectionYPx, width.toFloat(), selectionYPx, paint)
+        }
     }
 
 }

@@ -16,13 +16,14 @@ import androidx.recyclerview.widget.RecyclerView.OnScrollListener
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.educards.scrollselectionviewdemo.databinding.ActivityMainBinding
 import kotlin.math.absoluteValue
-import kotlin.math.sign
 
 class MainActivity : AppCompatActivity() {
 
     private val binding: ActivityMainBinding by lazy {
         DataBindingUtil.inflate(layoutInflater, R.layout.activity_main, null, false ) as ActivityMainBinding
     }
+
+    private val solver = SelectionYSolver()
 
     private val layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
 
@@ -32,8 +33,8 @@ class MainActivity : AppCompatActivity() {
         ForegroundColorSpan(resources.getColor(R.color.purple_700))
     }
 
-    private var sentenceHighlightItemPos = -1
-    private var sentenceHighlightOffsets: Pair<Int, Int>? = null
+    private var currentHighlightItemPos = -1
+    private var currentHighlightOffsets: Pair<Int, Int>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,8 +42,8 @@ class MainActivity : AppCompatActivity() {
         initRecyclerView()
     }
 
-    private fun updateSelectionYDebugView(selectionYRatio: Double) {
-        binding.selectionYDebugView.selectionYRatio = selectionYRatio
+    private fun updateSelectionYDebugView(selectionYData: SelectionYData) {
+        binding.selectionYDebugView.selectionYData = selectionYData
         binding.selectionYDebugView.invalidate()
     }
 
@@ -68,48 +69,56 @@ class MainActivity : AppCompatActivity() {
                 // interested only in vertical changes (y)
                 if (dy != 0) {
 
-                    val selectionYRatio = calculateSelectionYRatio(adapter, dy)
-                    val selectionY = calculateSelectionY(selectionYRatio)
-                    if (BuildConfig.DEBUG) Log.d(TAG, "selectionY: $selectionY")
+                    val selectionYData = SelectionYData()
 
-                    updateSelectionYDebugView(selectionYRatio)
+                    selectionYData.edgeDistanceTopPx = checkEdgeDistance(adapter, SelectionYData.UPWARDS_PERCEPTION_RANGE_PX, false)
+                    selectionYData.edgeDistanceBottomPx = checkEdgeDistance(adapter, SelectionYData.DOWNWARDS_PERCEPTION_RANGE_PX, true)
 
-                    val layoutManager = recyclerView.layoutManager as LinearLayoutManager
-                    val firstChildPos = layoutManager.findFirstVisibleItemPosition()
-                    val lastChildPos = layoutManager.findLastVisibleItemPosition()
-                    for (childPos in firstChildPos..lastChildPos) {
-                        if (BuildConfig.DEBUG) Log.d(TAG, "childPos: $childPos")
-                        val childView = findChildByPosition(layoutManager, childPos)
+                    selectionYData.selectionYRatio = solver.calculateSelectionYRatio(
+                        selectionYData.edgeDistanceTopPx, SelectionYData.UPWARDS_PERCEPTION_RANGE_PX,
+                        selectionYData.edgeDistanceBottomPx, SelectionYData.DOWNWARDS_PERCEPTION_RANGE_PX
+                    )
 
-                        if (childView != null && childView.y <= selectionY && selectionY < childView.bottom) {
+                    val selectionYRatio = selectionYData?.selectionYRatio
+                    if (selectionYRatio == null) {
+                        if (currentHighlightItemPos > -1) {
+                            val textView = findChildByPosition(layoutManager, currentHighlightItemPos)
+                            if (textView != null) {
+                                removeSpan(textView, adapter)
+                            }
+                        }
 
-                            val lineOffsets = getLineOffsets(childView, selectionY)
-                            if (lineOffsets != null) {
+                    } else {
+                        val selectionYPx = calculateSelectionYPx(selectionYRatio)
+                        if (BuildConfig.DEBUG) Log.d(TAG, "selectionY: $selectionYPx")
 
-                                // If the span was previously added to another spannable (view)
-                                // then we have to explicitly remove the span from this view.
-                                if (sentenceHighlightItemPos >= 0 && sentenceHighlightItemPos != childPos) {
-                                    val textView = findChildByPosition(layoutManager, sentenceHighlightItemPos)
-                                    if (textView != null) {
-                                        removeSpan(getSpannable(textView))
+                        updateSelectionYDebugView(selectionYData)
 
-                                        // notify UI changed
-                                        binding.recyclerView.post { adapter.notifyItemChanged(sentenceHighlightItemPos) }
+                        val layoutManager = recyclerView.layoutManager as LinearLayoutManager
+                        val firstChildPos = layoutManager.findFirstVisibleItemPosition()
+                        val lastChildPos = layoutManager.findLastVisibleItemPosition()
+                        for (childPos in firstChildPos..lastChildPos) {
+                            if (BuildConfig.DEBUG) Log.d(TAG, "childPos: $childPos")
+                            val childView = findChildByPosition(layoutManager, childPos)
+
+                            if (childView != null && childView.y <= selectionYPx && selectionYPx < childView.bottom) {
+
+                                val lineOffsets = getLineOffsets(childView, selectionYPx)
+                                if (lineOffsets != null) {
+
+                                    // If the span was previously added to another spannable (view)
+                                    // then we have to explicitly remove the span from this view.
+                                    if (currentHighlightItemPos >= 0 && currentHighlightItemPos != childPos) {
+                                        val textView = findChildByPosition(layoutManager, currentHighlightItemPos)
+                                        if (textView != null) {
+                                            removeSpan(textView, adapter)
+                                        }
+                                    }
+
+                                    if (currentHighlightOffsets?.equals(lineOffsets) != true) {
+                                        setSpan(childView, childPos, lineOffsets, adapter)
                                     }
                                 }
-
-                                if (sentenceHighlightOffsets?.equals(lineOffsets) == false) {
-                                    val spannable = getSpannable(childView)
-                                    val sentenceDetectionOffset = lineOffsets.first + (lineOffsets.second - lineOffsets.first) / 2
-                                    val sentenceInterval = breakIterator.getSentenceInterval(spannable, sentenceDetectionOffset)
-                                    setSpan(spannable, sentenceInterval.first, sentenceInterval.second)
-
-                                    // notify UI changed
-                                    binding.recyclerView.post { adapter.notifyItemChanged(childPos) }
-                                }
-
-                                sentenceHighlightItemPos = childPos
-                                sentenceHighlightOffsets = lineOffsets
                             }
                         }
                     }
@@ -123,14 +132,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun findChildByPosition(layoutManager: LinearLayoutManager, childPos: Int): TextView? {
-        return layoutManager.findViewByPosition(childPos) as TextView
+        val childView = layoutManager.findViewByPosition(childPos)
+        return if (childView == null) null else childView as TextView
     }
 
     private fun getSpannable(textView: TextView): Spannable = textView?.text as Spannable
 
-    private fun computeEdgeDistance(adapter: RecyclerViewAdapter, watchAheadDistancePx: Int, scrollDirDown: Boolean): Int? {
+    private fun checkEdgeDistance(adapter: RecyclerViewAdapter, perceptionRangePx: Int, checkBottom: Boolean): Int? {
 
-        var positionToEvaluate = if (scrollDirDown) layoutManager.findLastVisibleItemPosition() else layoutManager.findFirstVisibleItemPosition()
+        var positionToEvaluate = if (checkBottom) layoutManager.findLastVisibleItemPosition() else layoutManager.findFirstVisibleItemPosition()
 
         if (positionToEvaluate == RecyclerView.NO_POSITION) {
             return null
@@ -141,7 +151,7 @@ class MainActivity : AppCompatActivity() {
                 ?: throw RuntimeException("Requested child view has not been laid out")
 
             var exploredDistance: Int
-            if (scrollDirDown) {
+            if (checkBottom) {
                 positionToEvaluate++
                 exploredDistance = firstChild.y.toInt() + firstChild.height - binding.recyclerView.height
             } else {
@@ -153,7 +163,7 @@ class MainActivity : AppCompatActivity() {
 
             // Evaluate views until the watchAheadDistance is met
             // and there are children to evaluate.
-            while (exploredDistance.absoluteValue < watchAheadDistancePx
+            while (exploredDistance.absoluteValue < perceptionRangePx
                 && 0 <= positionToEvaluate && positionToEvaluate < adapter.itemCount) {
 
                 // Previously we evaluated the very first or the very last child view (depending on the scroll direction).
@@ -161,7 +171,7 @@ class MainActivity : AppCompatActivity() {
                 // To detect the height of the next/previous child we need to measure it offscreen.
                 var childView = createPhantomChild(adapter, phantomViewHolder, positionToEvaluate)
 
-                if (scrollDirDown) {
+                if (checkBottom) {
                     positionToEvaluate++
                     exploredDistance += childView.measuredHeight
                 } else {
@@ -170,8 +180,8 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            if (exploredDistance.absoluteValue >= watchAheadDistancePx) {
-                return if (scrollDirDown) Int.MAX_VALUE else Int.MIN_VALUE
+            if (exploredDistance.absoluteValue >= perceptionRangePx) {
+                return if (checkBottom) Int.MAX_VALUE else Int.MIN_VALUE
             } else {
                 return exploredDistance
             }
@@ -185,47 +195,41 @@ class MainActivity : AppCompatActivity() {
         return childView
     }
 
-    private fun calculateSelectionYRatio(adapter: RecyclerViewAdapter, dy: Int): Double {
-
-        val edgeDistanceY = computeEdgeDistance(adapter, WATCH_AHEAD_DISTANCE_PX, dy > 0)
-
-        if (edgeDistanceY == null
-
-            // Note, we can't use the followng simpler to read version here:
-            // ('edgeDistanceY.absoluteValue >= WATCH_AHEAD_DISTANCE_PX')
-            // because Int.MIN_VALUE.absoluteValue returns also MIN_VALUE due to stack overflow.
-            || edgeDistanceY >= WATCH_AHEAD_DISTANCE_PX
-            || edgeDistanceY <= -WATCH_AHEAD_DISTANCE_PX)
-        {
-            return 0.0
-
-        } else {
-            val direction = dy.sign
-            val distanceRatio = 1 - (edgeDistanceY.absoluteValue.toDouble() / WATCH_AHEAD_DISTANCE_PX)
-            return distanceRatio * direction
-        }
-
+    private fun calculateSelectionYPx(selectionYRatio: Double): Int {
+        return (binding.recyclerView.height * selectionYRatio).toInt()
     }
 
-    /**
-     * @param selectionYRatio
-     * * -1 top
-     * * 0 middle
-     * * 1 bottom
-     */
-    private fun calculateSelectionY(selectionYRatio: Double): Int {
-        val half = binding.recyclerView.height / 2
-        return (half + half * selectionYRatio).toInt()
+    private fun setSpan(
+        textView: TextView,
+        childPos: Int,
+        lineOffsets: Pair<Int, Int>,
+        adapter: RecyclerViewAdapter
+    ) {
+        val spannable = getSpannable(textView)
+        val sentenceDetectionOffset = lineOffsets.first + (lineOffsets.second - lineOffsets.first) / 2
+        val sentenceInterval = breakIterator.getSentenceInterval(spannable, sentenceDetectionOffset)
+
+        spannable.setSpan(sentenceHighlightSpan, sentenceInterval.first, sentenceInterval.second, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+        currentHighlightItemPos = childPos
+        currentHighlightOffsets = lineOffsets
+
+        // notify UI changed
+        binding.recyclerView.post { adapter.notifyItemChanged(childPos) }
     }
 
-    private fun setSpan(spannable: Spannable, spanStartIndex: Int, spanEndIndex: Int) {
-        if (BuildConfig.DEBUG) Log.d(TAG, "setSpan [start=$spanStartIndex, end=$spanEndIndex]")
-        spannable.setSpan(sentenceHighlightSpan, spanStartIndex, spanEndIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-    }
-
-    private fun removeSpan(spannable: Spannable) {
-        if (BuildConfig.DEBUG) Log.d(TAG, "removeSpan")
+    private fun removeSpan(
+        textView: TextView,
+        adapter: RecyclerViewAdapter
+    ) {
+        val spannable = getSpannable(textView)
         spannable.removeSpan(sentenceHighlightSpan)
+
+        currentHighlightItemPos = -1
+        currentHighlightOffsets = null
+
+        // notify UI changed
+        binding.recyclerView.post { adapter.notifyItemChanged(currentHighlightItemPos) }
     }
 
     /**
@@ -258,7 +262,6 @@ class MainActivity : AppCompatActivity() {
             Html.fromHtml("Egestas erat imperdiet sed euismod nisi porta lorem mollis aliquam. Nunc pulvinar sapien et ligula ullamcorper malesuada. Metus vulputate eu scelerisque felis imperdiet proin. Aenean pharetra magna ac placerat vestibulum lectus mauris ultrices. Id leo in vitae turpis massa sed elementum. Justo donec enim diam vulputate. Scelerisque in dictum non consectetur. Varius quam quisque id diam. Amet nulla facilisi morbi tempus iaculis. Enim sit amet venenatis urna. Orci phasellus egestas tellus rutrum tellus pellentesque eu tincidunt tortor. Bibendum neque egestas congue quisque egestas diam. Nunc sed id semper risus in hendrerit gravida. A cras semper auctor neque vitae tempus quam pellentesque nec. Purus sit amet luctus venenatis lectus magna fringilla urna porttitor. Gravida arcu ac tortor dignissim convallis aenean et tortor. Urna condimentum mattis pellentesque id nibh tortor id aliquet lectus. Aliquam purus sit amet luctus venenatis lectus magna. Suscipit tellus mauris a diam maecenas sed enim. Est ultricies integer quis auctor elit sed vulputate.") as Spannable
         )
 
-        private const val WATCH_AHEAD_DISTANCE_PX = 5000
     }
 
 }
