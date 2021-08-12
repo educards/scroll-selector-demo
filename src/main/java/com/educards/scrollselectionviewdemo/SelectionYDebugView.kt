@@ -17,11 +17,18 @@ class SelectionYDebugView: View {
     lateinit var selectionYData: SelectionYData
     lateinit var selectionYParams: SelectionYParams
 
-    private val paintYRatio = Paint().apply {
+    private val paintSelectionRatio = Paint().apply {
         isAntiAlias = true
         color = Color.BLUE
-        strokeWidth = 10f
+        strokeWidth = 60f
+        alpha = 150
         style = Paint.Style.STROKE
+    }
+
+    private val paintSelectionText = Paint().apply {
+        isAntiAlias = true
+        color = Color.WHITE
+        textSize = 72f
     }
 
     private val paintCurve = Paint().apply {
@@ -48,8 +55,8 @@ class SelectionYDebugView: View {
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
 
-        plotSelectionY(canvas)
         plotCurves(canvas)
+        plotSelectionY(canvas)
     }
 
     private fun plotCurves(canvas: Canvas?) {
@@ -112,7 +119,8 @@ class SelectionYDebugView: View {
     private fun plotSelectionY(canvas: Canvas?) {
         selectionYData?.selectionY?.let { selectionYRatio ->
             val selectionYPx = (height * selectionYRatio).toFloat()
-            canvas?.drawLine(0f, selectionYPx, width.toFloat(), selectionYPx, paintYRatio)
+            canvas?.drawLine(0f, selectionYPx, width.toFloat(), selectionYPx, paintSelectionRatio)
+            canvas?.drawText("selection: $selectionYRatio", 72f, selectionYPx + 24f, paintSelectionText)
         }
     }
 
