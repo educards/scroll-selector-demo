@@ -31,6 +31,12 @@ class SelectionYDebugView: View {
         textSize = 72f
     }
 
+    private val paintScrollPxText = Paint().apply {
+        isAntiAlias = true
+        color = Color.BLACK
+        textSize = 72f
+    }
+
     private val paintCurve = Paint().apply {
         isAntiAlias = true
         color = Color.BLUE
@@ -56,7 +62,7 @@ class SelectionYDebugView: View {
         super.onDraw(canvas)
 
         plotCurves(canvas)
-        plotSelectionY(canvas)
+        plotSelectionAndDistTexts(canvas)
     }
 
     private fun plotCurves(canvas: Canvas?) {
@@ -116,11 +122,15 @@ class SelectionYDebugView: View {
         }
     }
 
-    private fun plotSelectionY(canvas: Canvas?) {
-        selectionYData?.selectionY?.let { selectionYRatio ->
-            val selectionYPx = (height * selectionYRatio).toFloat()
-            canvas?.drawLine(0f, selectionYPx, width.toFloat(), selectionYPx, paintSelectionRatio)
-            canvas?.drawText("selection: $selectionYRatio", 72f, selectionYPx + 24f, paintSelectionText)
+    private fun plotSelectionAndDistTexts(canvas: Canvas?) {
+        selectionYData?.let { data ->
+            data.selectionY?.let { selection ->
+                val selectionYPx = (height * selection).toFloat()
+                canvas?.drawLine(0f, selectionYPx, width.toFloat(), selectionYPx, paintSelectionRatio)
+                canvas?.drawText("selection: ${data.selectionY}", 72f, selectionYPx + 24f, paintSelectionText)
+                canvas?.drawText("content top distance: ${data.contentTopDistPx} px", 72f, selectionYPx - 48f, paintScrollPxText)
+                canvas?.drawText("content bottom distance: ${data.contentBottomDistPx} px", 72f, selectionYPx + 92f, paintScrollPxText)
+            }
         }
     }
 
