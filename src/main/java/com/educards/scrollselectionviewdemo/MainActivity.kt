@@ -49,6 +49,35 @@ class MainActivity : AppCompatActivity() {
         binding.selectionYDebugView.selectionYSolver = solver
         binding.selectionYDebugView.selectionYData = selectionYData
         binding.selectionYDebugView.selectionYParams = selectionYParams
+
+        binding.inputParamControls.contentTopPerceptionRangePx.addOnChangeListener { slider, value, fromUser ->
+            selectionYParams.contentTopPerceptionRangePx = value.toInt()
+            binding.inputParamControls.contentTopPerceptionRangePxValue.text = value.toString()
+            updateSelectionYDebugView()
+        }
+
+        binding.inputParamControls.contentBottomPerceptionRangePx.addOnChangeListener { slider, value, fromUser ->
+            selectionYParams.contentBottomPerceptionRangePx = value.toInt()
+            binding.inputParamControls.contentBottomPerceptionRangePxValue.text = value.toString()
+            updateSelectionYDebugView()
+        }
+
+        binding.inputParamControls.selectionYMid.addOnChangeListener { slider, value, fromUser ->
+            selectionYParams.selectionYMid = value.toDouble()
+            binding.inputParamControls.selectionYMidValue.text = value.toString()
+            updateSelectionYDebugView()
+        }
+
+        binding.inputParamControls.stiffness.addOnChangeListener { slider, value, fromUser ->
+            selectionYParams.stiffness = value.toDouble()
+            binding.inputParamControls.stiffnessValue.text = value.toString()
+            updateSelectionYDebugView()
+        }
+
+        binding.inputParamControls.contentTopPerceptionRangePx.value = selectionYParams.contentTopPerceptionRangePx.toFloat()
+        binding.inputParamControls.contentBottomPerceptionRangePx.value = selectionYParams.contentBottomPerceptionRangePx.toFloat()
+        binding.inputParamControls.selectionYMid.value = selectionYParams.selectionYMid.toFloat()
+        binding.inputParamControls.stiffness.value = selectionYParams.selectionYMid.toFloat()
     }
 
     private fun updateSelectionYDebugView() {
