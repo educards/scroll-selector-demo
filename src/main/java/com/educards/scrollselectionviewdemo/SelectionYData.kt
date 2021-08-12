@@ -14,20 +14,9 @@ data class SelectionYData(
      */
     var selectionY: Double? = null,
 
-    var selectionYDefault: Double? = SELECTION_Y_MID,
-
     ) {
 
     companion object {
-        const val CONTENT_TOP_PERCEPTION_RANGE_PX = 2500
-        const val CONTENT_BOTTOM_PERCEPTION_RANGE_PX = 2500
-        const val SELECTION_Y_MID = .1
-
-        /**
-         * * 0 - TODO define
-         * * 1 - Straight line
-         */
-        const val STIFFNESS = 0.5
 
         fun isContentTopDetected(contentTopDistPx: Int?): Boolean {
             return contentTopDistPx != null && contentTopDistPx != Int.MIN_VALUE
@@ -36,6 +25,7 @@ data class SelectionYData(
         fun isContentBottomDetected(contentBottomDistPx: Int?): Boolean {
             return contentBottomDistPx != null && contentBottomDistPx != Int.MAX_VALUE
         }
+
     }
 
 }

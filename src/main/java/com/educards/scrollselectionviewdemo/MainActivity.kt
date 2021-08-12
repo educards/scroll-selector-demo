@@ -24,6 +24,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val solver = SelectionYSolver()
+    private val selectionYParams = SelectionYParams()
+    private val selectionYData = SelectionYData()
 
     private val layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
 
@@ -40,10 +42,16 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         initRecyclerView()
+        initSelectionYDebugView()
     }
 
-    private fun updateSelectionYDebugView(selectionYData: SelectionYData) {
+    private fun initSelectionYDebugView() {
+        binding.selectionYDebugView.selectionYSolver = solver
         binding.selectionYDebugView.selectionYData = selectionYData
+        binding.selectionYDebugView.selectionYParams = selectionYParams
+    }
+
+    private fun updateSelectionYDebugView() {
         binding.selectionYDebugView.invalidate()
     }
 
@@ -69,17 +77,15 @@ class MainActivity : AppCompatActivity() {
                 // interested only in vertical changes (y)
                 if (dy != 0) {
 
-                    val selectionYData = SelectionYData()
+                    selectionYData.contentTopDistPx = checkEdgeDistance(adapter, selectionYParams.contentTopPerceptionRangePx, false)
+                    selectionYData.contentBottomDistPx = checkEdgeDistance(adapter, selectionYParams.contentBottomPerceptionRangePx, true)
 
-                    selectionYData.edgeDistanceTopPx = checkEdgeDistance(adapter, SelectionYData.UPWARDS_PERCEPTION_RANGE_PX, false)
-                    selectionYData.edgeDistanceBottomPx = checkEdgeDistance(adapter, SelectionYData.DOWNWARDS_PERCEPTION_RANGE_PX, true)
-
-                    selectionYData.selectionYRatio = solver.calculateSelectionYRatio(
-                        selectionYData.edgeDistanceTopPx, SelectionYData.UPWARDS_PERCEPTION_RANGE_PX,
-                        selectionYData.edgeDistanceBottomPx, SelectionYData.DOWNWARDS_PERCEPTION_RANGE_PX
+                    selectionYData.selectionY = solver.calculateSelectionYRatio(
+                        selectionYData.contentTopDistPx, selectionYParams.contentTopPerceptionRangePx,
+                        selectionYData.contentBottomDistPx, selectionYParams.contentBottomPerceptionRangePx
                     )
 
-                    val selectionYRatio = selectionYData?.selectionYRatio
+                    val selectionYRatio = selectionYData?.selectionY
                     if (selectionYRatio == null) {
                         if (currentHighlightItemPos > -1) {
                             val textView = findChildByPosition(layoutManager, currentHighlightItemPos)
@@ -92,7 +98,7 @@ class MainActivity : AppCompatActivity() {
                         val selectionYPx = calculateSelectionYPx(selectionYRatio)
                         if (BuildConfig.DEBUG) Log.d(TAG, "selectionY: $selectionYPx")
 
-                        updateSelectionYDebugView(selectionYData)
+                        updateSelectionYDebugView()
 
                         val layoutManager = recyclerView.layoutManager as LinearLayoutManager
                         val firstChildPos = layoutManager.findFirstVisibleItemPosition()

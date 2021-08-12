@@ -13,8 +13,9 @@ import kotlin.math.absoluteValue
  */
 class SelectionYDebugView: View {
 
-    var selectionYSolver: SelectionYSolver? = null
-    var selectionYData: SelectionYData? = null
+    lateinit var selectionYSolver: SelectionYSolver
+    lateinit var selectionYData: SelectionYData
+    lateinit var selectionYParams: SelectionYParams
 
     private val paintYRatio = Paint().apply {
         isAntiAlias = true
@@ -53,59 +54,57 @@ class SelectionYDebugView: View {
 
     private fun plotCurves(canvas: Canvas?) {
 
-        val selectionYSolver  = selectionYSolver
+        // Associations to 'val' just to prevent null checks
+        // and nullable ? types operators in rest of the code.
+        val contentTopDistPx = selectionYData?.contentTopDistPx
+        val contentBottomDistPx = selectionYData?.contentBottomDistPx
 
-        if (selectionYSolver != null) {
+        if (contentTopDistPx != null && SelectionYData.isContentTopDetected(contentTopDistPx)
+           && contentBottomDistPx != null && SelectionYData.isContentBottomDetected(contentBottomDistPx)) {
 
-            val contentTopDistPx = selectionYData?.contentTopDistPx
-            val contentBottomDistPx = selectionYData?.contentBottomDistPx
-            if (contentTopDistPx != null && SelectionYData.isContentTopDetected(contentTopDistPx)
-               && contentBottomDistPx != null && SelectionYData.isContentBottomDetected(contentBottomDistPx)) {
+            val contentHeightPx = (contentTopDistPx.absoluteValue + contentBottomDistPx.absoluteValue).toFloat()
+            val content2PlotCoef = width.toFloat() / contentHeightPx
 
-                val contentHeightPx = (contentTopDistPx.absoluteValue + contentBottomDistPx.absoluteValue).toFloat()
-                val content2PlotCoef = width.toFloat() / contentHeightPx
+            for (i in 0..width) {
 
-                for (i in 0..width) {
+                val topCurveHeightScaled = selectionYParams.selectionYMid * height
+                val bottomCurveHeightScaled = (1 - selectionYParams.selectionYMid) * height
 
-                    val topCurveHeightScaled = SelectionYData.SELECTION_Y_MID * height
-                    val bottomCurveHeightScaled = (1 - SelectionYData.SELECTION_Y_MID) * height
+                val topPerceptionRangeScaled = selectionYParams.contentTopPerceptionRangePx.toDouble() * content2PlotCoef
+                val pTop = if (i > topPerceptionRangeScaled) Pair(i.toDouble(), topCurveHeightScaled) else {
+                    selectionYSolver.curve(
+                        topPerceptionRangeScaled,
+                        topCurveHeightScaled,
+                        1 - selectionYParams.stiffness,
+                        i / topPerceptionRangeScaled
+                    )
+                }
 
-                    val topPerceptionRangeScaled = SelectionYData.CONTENT_TOP_PERCEPTION_RANGE_PX.toDouble() * content2PlotCoef
-                    val pTop = if (i > topPerceptionRangeScaled) Pair(i.toDouble(), topCurveHeightScaled) else {
-                        selectionYSolver.curve(
-                            topPerceptionRangeScaled,
-                            topCurveHeightScaled,
-                            1 - SelectionYData.STIFFNESS,
-                            i / topPerceptionRangeScaled
-                        )
-                    }
+                val bottomPerceptionRangeScaled = selectionYParams.contentBottomPerceptionRangePx.toDouble() * content2PlotCoef
+                val bottomShift = width - bottomPerceptionRangeScaled
+                val pBottom = if (i < bottomShift) Pair(i.toDouble(), 0.0) else {
 
-                    val bottomPerceptionRangeScaled = SelectionYData.CONTENT_BOTTOM_PERCEPTION_RANGE_PX.toDouble() * content2PlotCoef
-                    val bottomShift = width - bottomPerceptionRangeScaled
-                    val pBottom = if (i < bottomShift) Pair(i.toDouble(), 0.0) else {
-
-                        val p = selectionYSolver.curve(
-                            bottomPerceptionRangeScaled,
-                            bottomCurveHeightScaled,
-                            1 - SelectionYData.STIFFNESS,
-                            (i - bottomShift) / bottomPerceptionRangeScaled
-                        )
-
-                        Pair(
-                            bottomShift + p.first,
-                            p.second
-                        )
-                    }
-
-                    val pComposed = Pair(
-                        i.toDouble(),
-                        pTop.second + pBottom.second
+                    val p = selectionYSolver.curve(
+                        bottomPerceptionRangeScaled,
+                        bottomCurveHeightScaled,
+                        1 - selectionYParams.stiffness,
+                        (i - bottomShift) / bottomPerceptionRangeScaled
                     )
 
-                    canvas?.drawPoint(i.toFloat(), pTop.second.toFloat(), paintCurve)
-                    canvas?.drawPoint(i.toFloat(), pBottom.second.toFloat() + topCurveHeightScaled.toFloat(), paintCurve)
-                    canvas?.drawPoint(i.toFloat(), pComposed.second.toFloat(), paintCurveComposed)
+                    Pair(
+                        bottomShift + p.first,
+                        p.second
+                    )
                 }
+
+                val pComposed = Pair(
+                    i.toDouble(),
+                    pTop.second + pBottom.second
+                )
+
+                canvas?.drawPoint(i.toFloat(), pTop.second.toFloat(), paintCurve)
+                canvas?.drawPoint(i.toFloat(), pBottom.second.toFloat() + topCurveHeightScaled.toFloat(), paintCurve)
+                canvas?.drawPoint(i.toFloat(), pComposed.second.toFloat(), paintCurveComposed)
             }
         }
     }
