@@ -89,7 +89,7 @@ class SelectionYDebugView: View {
                         topPerceptionRangeScaled,
                         topCurveHeightScaled,
                         1 - selectionYParams.stiffness,
-                        i / topPerceptionRangeScaled
+                        i.toDouble()
                     )
                 }
 
@@ -101,23 +101,25 @@ class SelectionYDebugView: View {
                         bottomPerceptionRangeScaled,
                         bottomCurveHeightScaled,
                         1 - selectionYParams.stiffness,
-                        (i - bottomShift) / bottomPerceptionRangeScaled
+                        i.toDouble() - bottomShift
                     )
 
-                    Pair(
+                    if (p == null) null else Pair(
                         bottomShift + p.first,
                         p.second
                     )
                 }
 
-                val pComposed = Pair(
-                    i.toDouble(),
-                    pTop.second + pBottom.second
-                )
+                if (pTop != null) canvas?.drawPoint(i.toFloat(), pTop.second.toFloat(), paintCurve)
+                if (pBottom != null) canvas?.drawPoint(i.toFloat(), pBottom.second.toFloat() + topCurveHeightScaled.toFloat(), paintCurve)
 
-                canvas?.drawPoint(i.toFloat(), pTop.second.toFloat(), paintCurve)
-                canvas?.drawPoint(i.toFloat(), pBottom.second.toFloat() + topCurveHeightScaled.toFloat(), paintCurve)
-                canvas?.drawPoint(i.toFloat(), pComposed.second.toFloat(), paintCurveComposed)
+                if (pTop != null && pBottom != null) {
+                    val pComposed = Pair(
+                        i.toDouble(),
+                        pTop.second + pBottom.second
+                    )
+                    canvas?.drawPoint(i.toFloat(), pComposed.second.toFloat(), paintCurveComposed)
+                }
             }
         }
     }
