@@ -13,8 +13,8 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginVertical="2dp"
-            android:layout_marginHorizontal="6dp"
+            android:layout_marginHorizontal="12dp"
+            android:translationY="12dp"
             android:gravity="center"
             android:orientation="horizontal">
 
@@ -22,33 +22,37 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Content Top Perception Range\n(in pixels)"
+                android:ellipsize="end"
+                android:lines="1"
+                android:text="Content Top Perception Range"
+                android:textAppearance="@style/TextAppearance.AppCompat.Caption"
                 android:textAlignment="textStart" />
-
-            <com.google.android.material.slider.Slider
-                android:id="@+id/contentTopPerceptionRangePx"
-                app:labelBehavior="gone"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="2"
-                android:stepSize="1"
-                android:valueFrom="0"
-                android:valueTo="10000" />
 
             <TextView
                 android:id="@+id/contentTopPerceptionRangePxValue"
-                android:layout_width="50dp"
+                android:layout_width="100dp"
                 android:layout_height="wrap_content"
                 android:text="0"
+                android:textAppearance="@style/TextAppearance.AppCompat.Caption"
                 android:textAlignment="textEnd" />
 
         </LinearLayout>
 
+        <com.google.android.material.slider.Slider
+            android:id="@+id/contentTopPerceptionRangePx"
+            app:labelBehavior="gone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:thumbRadius="6dp"
+            android:stepSize="1"
+            android:valueFrom="0"
+            android:valueTo="10000" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginVertical="2dp"
-            android:layout_marginHorizontal="6dp"
+            android:layout_marginHorizontal="12dp"
+            android:translationY="12dp"
             android:gravity="center"
             android:orientation="horizontal">
 
@@ -56,33 +60,37 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Content Bottom Perception Range\n(in pixels)"
+                android:ellipsize="end"
+                android:lines="1"
+                android:text="Content Bottom Perception Range"
+                android:textAppearance="@style/TextAppearance.AppCompat.Caption"
                 android:textAlignment="textStart" />
-
-            <com.google.android.material.slider.Slider
-                android:id="@+id/contentBottomPerceptionRangePx"
-                app:labelBehavior="gone"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="2"
-                android:stepSize="1"
-                android:valueFrom="0"
-                android:valueTo="10000" />
 
             <TextView
                 android:id="@+id/contentBottomPerceptionRangePxValue"
-                android:layout_width="50dp"
+                android:layout_width="100dp"
                 android:layout_height="wrap_content"
                 android:text="0"
+                android:textAppearance="@style/TextAppearance.AppCompat.Caption"
                 android:textAlignment="textEnd" />
 
         </LinearLayout>
 
+        <com.google.android.material.slider.Slider
+            android:id="@+id/contentBottomPerceptionRangePx"
+            app:labelBehavior="gone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:stepSize="1"
+            android:valueFrom="0"
+            app:thumbRadius="6dp"
+            android:valueTo="10000" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginVertical="2dp"
-            android:layout_marginHorizontal="6dp"
+            android:layout_marginHorizontal="12dp"
+            android:translationY="12dp"
             android:gravity="center"
             android:orientation="horizontal">
 
@@ -91,32 +99,34 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Selection Y Mid"
+                android:textAppearance="@style/TextAppearance.AppCompat.Caption"
                 android:textAlignment="textStart" />
-
-            <com.google.android.material.slider.Slider
-                android:id="@+id/selectionYMid"
-                app:labelBehavior="gone"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="2"
-                android:stepSize="0.01"
-                android:valueFrom="0"
-                android:valueTo="1" />
 
             <TextView
                 android:id="@+id/selectionYMidValue"
                 android:layout_width="50dp"
                 android:layout_height="wrap_content"
                 android:text="0"
+                android:textAppearance="@style/TextAppearance.AppCompat.Caption"
                 android:textAlignment="textEnd" />
 
         </LinearLayout>
 
+        <com.google.android.material.slider.Slider
+            android:id="@+id/selectionYMid"
+            app:labelBehavior="gone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:thumbRadius="6dp"
+            android:stepSize="0.01"
+            android:valueFrom="0"
+            android:valueTo="1" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginVertical="2dp"
-            android:layout_marginHorizontal="6dp"
+            android:layout_marginHorizontal="12dp"
+            android:translationY="12dp"
             android:gravity="center"
             android:orientation="horizontal">
 
@@ -125,26 +135,28 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Stiffness"
+                android:textAppearance="@style/TextAppearance.AppCompat.Caption"
                 android:textAlignment="textStart" />
-
-            <com.google.android.material.slider.Slider
-                android:id="@+id/stiffness"
-                app:labelBehavior="gone"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="2"
-                android:stepSize="0.01"
-                android:valueFrom="0"
-                android:valueTo="1" />
 
             <TextView
                 android:id="@+id/stiffnessValue"
                 android:layout_width="50dp"
                 android:layout_height="wrap_content"
                 android:text="0"
+                android:textAppearance="@style/TextAppearance.AppCompat.Caption"
                 android:textAlignment="textEnd" />
 
         </LinearLayout>
+
+        <com.google.android.material.slider.Slider
+            android:id="@+id/stiffness"
+            app:labelBehavior="gone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:thumbRadius="6dp"
+            android:stepSize="0.01"
+            android:valueFrom="0"
+            android:valueTo="1" />
 
     </LinearLayout>
 
