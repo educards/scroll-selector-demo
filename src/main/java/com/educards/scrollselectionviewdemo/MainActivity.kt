@@ -52,13 +52,13 @@ class MainActivity : AppCompatActivity() {
 
         binding.inputParamControls.contentTopPerceptionRangePx.addOnChangeListener { slider, value, fromUser ->
             selectionYParams.contentTopPerceptionRangePx = value.toInt()
-            binding.inputParamControls.contentTopPerceptionRangePxValue.text = value.toString()
+            binding.inputParamControls.contentTopPerceptionRangePxValue.text = "$value px"
             updateSelectionYDebugView()
         }
 
         binding.inputParamControls.contentBottomPerceptionRangePx.addOnChangeListener { slider, value, fromUser ->
             selectionYParams.contentBottomPerceptionRangePx = value.toInt()
-            binding.inputParamControls.contentBottomPerceptionRangePxValue.text = value.toString()
+            binding.inputParamControls.contentBottomPerceptionRangePxValue.text = "$value px"
             updateSelectionYDebugView()
         }
 
