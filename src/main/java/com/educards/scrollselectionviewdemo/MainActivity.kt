@@ -185,13 +185,12 @@ class MainActivity : AppCompatActivity() {
             val firstChild = layoutManager.findViewByPosition(positionToEvaluate)
                 ?: throw RuntimeException("Requested child view has not been laid out")
 
-            var exploredDistance: Int
-            if (checkBottom) {
+            var exploredDistance: Int = if (detectBottom) {
                 positionToEvaluate++
-                exploredDistance = firstChild.y.toInt() + firstChild.height - binding.recyclerView.height
+                firstChild.y.toInt() + firstChild.height - binding.recyclerView.height
             } else {
                 positionToEvaluate--
-                exploredDistance = firstChild.y.toInt()
+                firstChild.y.toInt()
             }
 
             val phantomViewHolder = adapter.onCreateViewHolder(binding.recyclerView, 0)
