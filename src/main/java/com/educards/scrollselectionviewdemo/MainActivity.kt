@@ -106,8 +106,8 @@ class MainActivity : AppCompatActivity() {
                 // interested only in vertical changes (y)
                 if (dy != 0) {
 
-                    selectionYData.contentTopDistPx = checkEdgeDistance(adapter, selectionYParams.contentTopPerceptionRangePx, false)
-                    selectionYData.contentBottomDistPx = checkEdgeDistance(adapter, selectionYParams.contentBottomPerceptionRangePx, true)
+                    selectionYData.contentTopDistPx = detectEdge(adapter, selectionYParams.contentTopPerceptionRangePx, false)
+                    selectionYData.contentBottomDistPx = detectEdge(adapter, selectionYParams.contentBottomPerceptionRangePx, true)
 
                     selectionYData.selectionY = solver.calculateSelectionYRatio(
                         selectionYData.contentTopDistPx, selectionYParams.contentTopPerceptionRangePx,
@@ -173,9 +173,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun getSpannable(textView: TextView): Spannable = textView?.text as Spannable
 
-    private fun checkEdgeDistance(adapter: RecyclerViewAdapter, perceptionRangePx: Int, checkBottom: Boolean): Int? {
+    private fun detectEdge(adapter: RecyclerViewAdapter, perceptionRangePx: Int, detectBottom: Boolean): Int? {
 
-        var positionToEvaluate = if (checkBottom) layoutManager.findLastVisibleItemPosition() else layoutManager.findFirstVisibleItemPosition()
+        var positionToEvaluate = if (detectBottom) layoutManager.findLastVisibleItemPosition() else layoutManager.findFirstVisibleItemPosition()
 
         if (positionToEvaluate == RecyclerView.NO_POSITION) {
             return null
@@ -206,7 +206,7 @@ class MainActivity : AppCompatActivity() {
                 // To detect the height of the next/previous child we need to measure it offscreen.
                 var childView = createPhantomChild(adapter, phantomViewHolder, positionToEvaluate)
 
-                if (checkBottom) {
+                if (detectBottom) {
                     positionToEvaluate++
                     exploredDistance += childView.measuredHeight
                 } else {
