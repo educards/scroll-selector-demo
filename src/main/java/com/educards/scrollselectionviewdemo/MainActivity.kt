@@ -215,10 +215,10 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            if (exploredDistance.absoluteValue >= perceptionRangePx) {
-                return if (checkBottom) Int.MAX_VALUE else Int.MIN_VALUE
+            return if (exploredDistance.absoluteValue >= perceptionRangePx) {
+                null
             } else {
-                return exploredDistance
+                exploredDistance
             }
         }
     }
