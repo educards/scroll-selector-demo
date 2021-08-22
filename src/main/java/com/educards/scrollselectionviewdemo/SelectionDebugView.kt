@@ -118,9 +118,9 @@ class SelectionDebugView: View {
         r2pCoef: Float,
         rBottomPerceptRange: Int
     ) {
-        val rBottomStart = rTopPerceptRange.toDouble()
+        val rBottomStart = rTopPerceptRange
 
-        canvas?.drawRect(0f, 0f, (rBottomStart * r2pCoef).toFloat(), bottom.toFloat(), paintUnknownArea)
+        canvas?.drawRect(0f, 0f, rBottomStart * r2pCoef, bottom.toFloat(), paintUnknownArea)
 
         for (i in 0..width) {
             val rX = getRX(i, r2pCoef)
@@ -130,7 +130,8 @@ class SelectionDebugView: View {
     }
 
     private fun plotTop(canvas: Canvas?, rTopPerceptRange: Int, r2pCoef: Float) {
-        val rTopStart = 0.0
+
+        val rTopStart = 0
 
         canvas?.drawRect(rTopPerceptRange * r2pCoef, 0f, width.toFloat(), bottom.toFloat(), paintUnknownArea)
 
@@ -152,10 +153,10 @@ class SelectionDebugView: View {
     ) {
         val rTotalDist = (rTopDist + rBottomDist).toDouble()
         val rTopBottomPerceptRatio = rTopPerceptRange.toDouble() / rTotalPerceptRange.toDouble()
-        val rTopStart = rTopPerceptRange - (rTotalDist * rTopBottomPerceptRatio)
-        val rBottomStart = rTopPerceptRange - rBottomPerceptRange + rTotalDist * (1.0 - rTopBottomPerceptRatio)
+        val rTopStart = (rTopPerceptRange - (rTotalDist * rTopBottomPerceptRatio)).toInt()
+        val rBottomStart = (rTopPerceptRange - rBottomPerceptRange + rTotalDist * (1.0 - rTopBottomPerceptRatio)).toInt()
 
-        canvas?.drawRect(0f, 0f, (rTopStart * r2pCoef).toFloat(), bottom.toFloat(), paintUnknownArea)
+        canvas?.drawRect(0f, 0f, rTopStart * r2pCoef, bottom.toFloat(), paintUnknownArea)
         canvas?.drawRect(((rTopStart + rTotalDist) * r2pCoef).toFloat(), 0f, width.toFloat(), bottom.toFloat(), paintUnknownArea)
 
         for (i in 0..width) {
@@ -174,9 +175,9 @@ class SelectionDebugView: View {
                 val rWeightFrom = max(rTopStart, rBottomStart)
                 val rWeightTo = min(rTopStart + rTopPerceptRange, rBottomStart + rBottomPerceptRange)
                 val rWeightDist = rWeightTo - rWeightFrom
-                var topWeight = if (rX < rWeightFrom) 1.0 else if (rX > rWeightTo) 0.0 else 1 - ((rX - rWeightFrom) / rWeightDist)
+                var topWeight = if (rX < rWeightFrom) 1.0 else if (rX > rWeightTo) 0.0 else 1 - ((rX - rWeightFrom).toDouble() / rWeightDist)
                 topWeight = sqrt(topWeight)
-                var bottomWeight = if (rX < rWeightFrom) 0.0 else if (rX > rWeightTo) 1.0 else (rX - rWeightFrom) / rWeightDist
+                var bottomWeight = if (rX < rWeightFrom) 0.0 else if (rX > rWeightTo) 1.0 else (rX - rWeightFrom).toDouble() / rWeightDist
                 bottomWeight = sqrt(bottomWeight)
                 val rTopYCentered = rTopY - selectionYParams.selectionYMid
                 (rTopYCentered * topWeight + rBottomY * bottomWeight) + selectionYParams.selectionYMid
@@ -185,7 +186,7 @@ class SelectionDebugView: View {
         }
     }
 
-    private fun calculateTopY(rX: Int, rTopStart: Double, rTopPerceptRange: Int) = when {
+    private fun calculateTopY(rX: Int, rTopStart: Int, rTopPerceptRange: Int) = when {
         rX < rTopStart -> {
             0.0
         }
@@ -193,17 +194,12 @@ class SelectionDebugView: View {
             selectionYParams.selectionYMid
         }
         else -> {
-            val rTopX = rX - rTopStart
-            selectionYSolver.curve(
-                rTopPerceptRange.toDouble(),
-                selectionYParams.selectionYMid,
-                1.0 - selectionYParams.stiffness,
-                rTopX
-            )?.second
+            val rEdgeDistanceTopPx = (rX - rTopStart).toDouble()
+            selectionYSolver.curveTop(selectionYParams, rEdgeDistanceTopPx)
         }
     }
 
-    private fun calculateBottomY(rX: Int, rBottomStart: Double, rBottomPerceptRange: Int, yShift: Double): Double? {
+    private fun calculateBottomY(rX: Int, rBottomStart: Int, rBottomPerceptRange: Int, yShift: Double): Double? {
         val y = when {
             rX < rBottomStart -> {
                 0.0
@@ -212,13 +208,8 @@ class SelectionDebugView: View {
                 1.0 - selectionYParams.selectionYMid
             }
             else -> {
-                val rBottomX = rX - rBottomStart
-                selectionYSolver.curve(
-                    rBottomPerceptRange.toDouble(),
-                    1.0 - selectionYParams.selectionYMid,
-                    1.0 - selectionYParams.stiffness,
-                    rBottomX
-                )?.second
+                val x = (rX - rBottomStart).toDouble()
+                selectionYSolver.curveBottom(selectionYParams, x)
             }
         }
         return y?.plus(yShift)

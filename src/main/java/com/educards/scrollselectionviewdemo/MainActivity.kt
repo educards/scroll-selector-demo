@@ -110,8 +110,7 @@ class MainActivity : AppCompatActivity() {
                     selectionYData.contentBottomDistPx = detectEdge(adapter, selectionYParams.contentBottomPerceptionRangePx, true)
 
                     selectionYData.selectionY = solver.calculateSelectionYRatio(
-                        selectionYData.contentTopDistPx, selectionYParams.contentTopPerceptionRangePx,
-                        selectionYData.contentBottomDistPx, selectionYParams.contentBottomPerceptionRangePx
+                        selectionYParams, selectionYData.contentTopDistPx, selectionYData.contentBottomDistPx
                     )
 
                     val selectionYRatio = selectionYData?.selectionY

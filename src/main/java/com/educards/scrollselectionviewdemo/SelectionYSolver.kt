@@ -4,35 +4,62 @@ import java.lang.Math.cbrt
 import kotlin.math.*
 
 /**
- * @see curve
+ * TODO documentation
  */
 class SelectionYSolver {
 
     fun calculateSelectionYRatio(
+        selectionYParams: SelectionYParams,
         edgeDistanceTopPx: Int?,
-        upwardsPerceptionRangePx: Int,
         edgeDistanceBottomPx: Int?,
-        downwardsPerceptionRangePx: Int
-    ): Double {
+    ): Double? {
 
-        if (edgeDistanceBottomPx == null
+        return if (edgeDistanceTopPx != null && edgeDistanceBottomPx != null) {
+            val rTopY = curveTop(selectionYParams, edgeDistanceTopPx.absoluteValue.toDouble())
+            val rBottomY = curveBottom(selectionYParams, (selectionYParams.contentBottomPerceptionRangePx - edgeDistanceBottomPx).toDouble())
+            if (rTopY != null && rBottomY != null) {
+                val rX = edgeDistanceTopPx.absoluteValue
+                val rTotalWidth = edgeDistanceTopPx.absoluteValue + edgeDistanceBottomPx
+                val rBottomStart = rTotalWidth - selectionYParams.contentBottomPerceptionRangePx
+                val rWeightFrom = max(0, rBottomStart)
+                val rWeightTo = min(selectionYParams.contentTopPerceptionRangePx, rTotalWidth)
+                val rWeightDist = rWeightTo - rWeightFrom
+                var topWeight = if (rX < rWeightFrom) 1.0 else if (rX > rWeightTo) 0.0 else 1 - ((rX - rWeightFrom).toDouble() / rWeightDist)
+                topWeight = sqrt(topWeight)
+                var bottomWeight = if (rX < rWeightFrom) 0.0 else if (rX > rWeightTo) 1.0 else (rX - rWeightFrom).toDouble() / rWeightDist
+                bottomWeight = sqrt(bottomWeight)
+                val rTopYCentered = rTopY - selectionYParams.selectionYMid
+                (rTopYCentered * topWeight + rBottomY * bottomWeight) + selectionYParams.selectionYMid
+            } else null
 
-            // Note, we can't use the following (and more simple to read) version here:
-            // ('edgeDistance.absoluteValue >= perceptionRangePx')
-            // because Int.MIN_VALUE.absoluteValue also returns MIN_VALUE due to stack overflow.
-            // @see documentation of Int.absoluteValue
-            || edgeDistanceBottomPx >= downwardsPerceptionRangePx
-            || edgeDistanceBottomPx <= -downwardsPerceptionRangePx)
-        {
-            return 0.0
+        } else if (edgeDistanceTopPx != null) {
+            curveTop(selectionYParams, edgeDistanceTopPx.toDouble())
+
+        } else if (edgeDistanceBottomPx != null) {
+            val x = selectionYParams.contentBottomPerceptionRangePx - edgeDistanceBottomPx
+            curveBottom(selectionYParams, x.toDouble())?.plus(selectionYParams.selectionYMid)
 
         } else {
-            val direction = edgeDistanceBottomPx.sign
-            val distanceRatio = 1 - (edgeDistanceBottomPx.absoluteValue.toDouble() / downwardsPerceptionRangePx)
-            return distanceRatio * direction
+            selectionYParams.selectionYMid
         }
-
     }
+
+    fun curveTop(
+        selectionYParams: SelectionYParams,
+        edgeDistanceTopPx: Double
+    ) = curve(
+        selectionYParams.contentTopPerceptionRangePx.toDouble(),
+        selectionYParams.selectionYMid,
+        1.0 - selectionYParams.stiffness,
+        edgeDistanceTopPx.absoluteValue
+    )?.second
+
+    fun curveBottom(selectionYParams: SelectionYParams, x: Double) = curve(
+        selectionYParams.contentBottomPerceptionRangePx.toDouble(),
+        1.0 - selectionYParams.selectionYMid,
+        1.0 - selectionYParams.stiffness,
+        x
+    )?.second
 
     /**
      * Computes a value of a function `f` with the following properties:
