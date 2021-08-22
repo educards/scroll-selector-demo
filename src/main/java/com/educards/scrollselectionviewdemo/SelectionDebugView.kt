@@ -10,7 +10,12 @@ import kotlin.math.*
 /**
  * Draws the trajectory and the current state of a `selection`.
  */
-class SelectionYDebugView: View {
+class SelectionDebugView: View {
+
+    // To make things clearer and emphasize the domain of variables used in calculations the
+    // following variables naming convention is used:
+    //   p* - plot domain
+    //   r* - real domain
 
     lateinit var selectionYSolver: SelectionYSolver
     lateinit var selectionYData: SelectionYData
@@ -221,7 +226,7 @@ class SelectionYDebugView: View {
     }
 
     companion object {
-        const val TAG = "SelectionYDebugView"
+        const val TAG = "SelectionDebugView"
     }
 
 }
