@@ -80,6 +80,111 @@ class SelectionDebugView: View {
         plotSelectionAndDistTexts(canvas)
     }
 
+    private fun plotCurves(canvas: Canvas?) {
+
+        val rTopDist = selectionYData.contentTopDistPx?.absoluteValue
+        val rTopPerceptRange = selectionYParams.contentTopPerceptionRangePx
+        val rBottomDist = selectionYData.contentBottomDistPx
+        val rBottomPerceptRange = selectionYParams.contentBottomPerceptionRangePx
+        val rTotalPerceptRange = rTopPerceptRange + rBottomPerceptRange
+        val r2pCoef = width.toFloat() / rTotalPerceptRange.toFloat()
+        val rMidY = selectionYParams.selectionYMid
+
+        val pTopPerceptRange = rTopPerceptRange * r2pCoef
+        canvas?.drawLine(pTopPerceptRange, 0f, pTopPerceptRange, height.toFloat(), paintPlotMid)
+
+        val pMidY = rMidY.toFloat() * height
+        canvas?.drawLine(0f, pMidY, width.toFloat(), pMidY, paintPlotMid)
+
+        if (rTopDist != null && rBottomDist != null) {
+            plotTopBottom(rTopDist, rBottomDist, rTopPerceptRange, rTotalPerceptRange, rBottomPerceptRange, canvas, r2pCoef)
+        } else if (rTopDist != null) {
+            plotTop(canvas, rTopPerceptRange, r2pCoef)
+        } else if (rBottomDist != null) {
+            plotBottom(rTopPerceptRange, canvas, r2pCoef, rBottomPerceptRange)
+        } else {
+            plotNone(canvas, pMidY)
+        }
+    }
+
+    private fun plotNone(canvas: Canvas?, pMidY: Float) {
+        canvas?.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paintUnknownArea)
+        canvas?.drawLine(0f, pMidY, width.toFloat(), pMidY, paintCurvePrimary)
+    }
+
+    private fun plotBottom(
+        rTopPerceptRange: Int,
+        canvas: Canvas?,
+        r2pCoef: Float,
+        rBottomPerceptRange: Int
+    ) {
+        val rBottomStart = rTopPerceptRange.toDouble()
+
+        canvas?.drawRect(0f, 0f, (rBottomStart * r2pCoef).toFloat(), bottom.toFloat(), paintUnknownArea)
+
+        for (i in 0..width) {
+            val rX = getRX(i, r2pCoef)
+            val rBottomY = calculateBottomY(rX, rBottomStart, rBottomPerceptRange, selectionYParams.selectionYMid)
+            if (rBottomY != null) canvas?.drawPoint(i.toFloat(), rBottomY.toFloat() * height, paintCurvePrimary)
+        }
+    }
+
+    private fun plotTop(canvas: Canvas?, rTopPerceptRange: Int, r2pCoef: Float) {
+        val rTopStart = 0.0
+
+        canvas?.drawRect(rTopPerceptRange * r2pCoef, 0f, width.toFloat(), bottom.toFloat(), paintUnknownArea)
+
+        for (i in 0..width) {
+            val rX = getRX(i, r2pCoef)
+            val rTopY = calculateTopY(rX, rTopStart, rTopPerceptRange)
+            if (rTopY != null) canvas?.drawPoint(i.toFloat(), rTopY.toFloat() * height, paintCurvePrimary)
+        }
+    }
+
+    private fun plotTopBottom(
+        rTopDist: Int,
+        rBottomDist: Int,
+        rTopPerceptRange: Int,
+        rTotalPerceptRange: Int,
+        rBottomPerceptRange: Int,
+        canvas: Canvas?,
+        r2pCoef: Float
+    ) {
+        val rTotalDist = (rTopDist + rBottomDist).toDouble()
+        val rTopBottomPerceptRatio = rTopPerceptRange.toDouble() / rTotalPerceptRange.toDouble()
+        val rTopStart = rTopPerceptRange - (rTotalDist * rTopBottomPerceptRatio)
+        val rBottomStart = rTopPerceptRange - rBottomPerceptRange + rTotalDist * (1.0 - rTopBottomPerceptRatio)
+
+        canvas?.drawRect(0f, 0f, (rTopStart * r2pCoef).toFloat(), bottom.toFloat(), paintUnknownArea)
+        canvas?.drawRect(((rTopStart + rTotalDist) * r2pCoef).toFloat(), 0f, width.toFloat(), bottom.toFloat(), paintUnknownArea)
+
+        for (i in 0..width) {
+            val rX = getRX(i, r2pCoef)
+
+            val rTopY = calculateTopY(rX, rTopStart, rTopPerceptRange)
+            if (rTopY != null) canvas?.drawPoint(i.toFloat(), rTopY.toFloat() * height, paintCurveSecondary)
+
+            val rBottomY = calculateBottomY(rX, rBottomStart, rBottomPerceptRange, 0.0)
+            if (rBottomY != null) {
+                val rBottomYPlotted = rBottomY + selectionYParams.selectionYMid
+                canvas?.drawPoint(i.toFloat(), rBottomYPlotted.toFloat() * height, paintCurveSecondary)
+            }
+
+            val rComposedY = if (rTopY != null && rBottomY != null) {
+                val rWeightFrom = max(rTopStart, rBottomStart)
+                val rWeightTo = min(rTopStart + rTopPerceptRange, rBottomStart + rBottomPerceptRange)
+                val rWeightDist = rWeightTo - rWeightFrom
+                var topWeight = if (rX < rWeightFrom) 1.0 else if (rX > rWeightTo) 0.0 else 1 - ((rX - rWeightFrom) / rWeightDist)
+                topWeight = sqrt(topWeight)
+                var bottomWeight = if (rX < rWeightFrom) 0.0 else if (rX > rWeightTo) 1.0 else (rX - rWeightFrom) / rWeightDist
+                bottomWeight = sqrt(bottomWeight)
+                val rTopYCentered = rTopY - selectionYParams.selectionYMid
+                (rTopYCentered * topWeight + rBottomY * bottomWeight) + selectionYParams.selectionYMid
+            } else null
+            if (rComposedY != null) canvas?.drawPoint(i.toFloat(), rComposedY.toFloat() * height, paintCurvePrimary)
+        }
+    }
+
     private fun calculateTopY(rX: Int, rTopStart: Double, rTopPerceptRange: Int) = when {
         rX < rTopStart -> {
             0.0
@@ -117,88 +222,6 @@ class SelectionDebugView: View {
             }
         }
         return y?.plus(yShift)
-    }
-
-    private fun plotCurves(canvas: Canvas?) {
-
-        val rTopDist = selectionYData.contentTopDistPx?.absoluteValue
-        val rTopPerceptRange = selectionYParams.contentTopPerceptionRangePx
-        val rBottomDist = selectionYData.contentBottomDistPx
-        val rBottomPerceptRange = selectionYParams.contentBottomPerceptionRangePx
-        val rTotalPerceptRange = rTopPerceptRange + rBottomPerceptRange
-        val r2pCoef = width.toFloat() / rTotalPerceptRange.toFloat()
-
-        val pTopPerceptRange = rTopPerceptRange * r2pCoef
-        canvas?.drawLine(pTopPerceptRange, 0f, pTopPerceptRange, height.toFloat(), paintPlotMid)
-
-        if (rTopDist != null && rBottomDist != null) {
-
-            val rTotalDist = (rTopDist + rBottomDist).toDouble()
-            val rTopBottomPerceptRatio = rTopPerceptRange.toDouble() / rTotalPerceptRange.toDouble()
-            val rTopStart = rTopPerceptRange - (rTotalDist * rTopBottomPerceptRatio)
-            val rBottomStart = rTopPerceptRange - rBottomPerceptRange + rTotalDist * (1.0 - rTopBottomPerceptRatio)
-
-            canvas?.drawRect(0f, 0f, (rTopStart * r2pCoef).toFloat(), bottom.toFloat() ,paintUnknownArea)
-            canvas?.drawRect(((rTopStart + rTotalDist) * r2pCoef).toFloat(), 0f, width.toFloat(), bottom.toFloat() ,paintUnknownArea)
-
-            for (i in 0..width) {
-                val rX = getRX(i, r2pCoef)
-
-                val rTopY = calculateTopY(rX, rTopStart, rTopPerceptRange)
-                if (rTopY != null) canvas?.drawPoint(i.toFloat(), rTopY.toFloat() * height, paintCurveSecondary)
-
-                val rBottomY = calculateBottomY(rX, rBottomStart, rBottomPerceptRange, 0.0)
-                if (rBottomY != null) {
-                    val rBottomYPlotted = rBottomY + selectionYParams.selectionYMid
-                    canvas?.drawPoint(i.toFloat(), rBottomYPlotted.toFloat() * height, paintCurveSecondary)
-                }
-
-                val rComposedY = if (rTopY != null && rBottomY != null) {
-                    val rWeightFrom = max(rTopStart, rBottomStart)
-                    val rWeightTo = min (rTopStart + rTopPerceptRange, rBottomStart + rBottomPerceptRange)
-                    val rWeightDist = rWeightTo - rWeightFrom
-                    var topWeight = if (rX < rWeightFrom) 1.0 else if (rX > rWeightTo) 0.0 else 1 - ((rX - rWeightFrom) / rWeightDist)
-                    topWeight = sqrt(topWeight)
-                    var bottomWeight = if (rX < rWeightFrom) 0.0 else if (rX > rWeightTo) 1.0 else (rX - rWeightFrom) / rWeightDist
-                    bottomWeight = sqrt(bottomWeight)
-                    val rTopYCentered = rTopY - selectionYParams.selectionYMid
-                    (rTopYCentered * topWeight + rBottomY * bottomWeight) + selectionYParams.selectionYMid
-                } else null
-                if (rComposedY != null) canvas?.drawPoint(i.toFloat(), rComposedY.toFloat() * height, paintCurvePrimary)
-            }
-
-        } else if (rTopDist != null) {
-
-            val rTopStart = 0.0
-
-            canvas?.drawRect(rTopPerceptRange * r2pCoef, 0f, width.toFloat(), bottom.toFloat(), paintUnknownArea)
-
-            for (i in 0..width) {
-                val rX = getRX(i, r2pCoef)
-                val rTopY = calculateTopY(rX, rTopStart, rTopPerceptRange)
-                if (rTopY != null) canvas?.drawPoint(i.toFloat(), rTopY.toFloat() * height, paintCurvePrimary)
-            }
-
-        } else if (rBottomDist != null) {
-
-            val rBottomStart = rTopPerceptRange.toDouble()
-
-            canvas?.drawRect(0f, 0f, (rBottomStart * r2pCoef).toFloat(), bottom.toFloat() ,paintUnknownArea)
-
-            for (i in 0..width) {
-                val rX = getRX(i, r2pCoef)
-                val rBottomY = calculateBottomY(rX, rBottomStart, rBottomPerceptRange, selectionYParams.selectionYMid)
-                if (rBottomY != null) canvas?.drawPoint(i.toFloat(), rBottomY.toFloat() * height, paintCurvePrimary)
-            }
-
-        } else {
-
-            val rMidY = selectionYParams.selectionYMid
-            canvas?.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paintUnknownArea)
-            for (i in 0..width) {
-                if (rMidY != null) canvas?.drawPoint(i.toFloat(), rMidY.toFloat() * height, paintCurvePrimary)
-            }
-        }
     }
 
     private inline fun getRX(i: Int, r2pCoef: Float) = (i.toDouble() / r2pCoef).roundToInt()
