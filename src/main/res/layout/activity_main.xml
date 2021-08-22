@@ -17,6 +17,7 @@
 
         <com.educards.scrollselectionviewdemo.SelectionYDebugView
             android:id="@+id/selection_y_debug_view"
+            style="@style/Widget.Android.SelectionDebugView"
             android:layout_width="match_parent"
             android:layout_height="200dp" />
 
