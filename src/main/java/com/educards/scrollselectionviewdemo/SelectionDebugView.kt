@@ -15,45 +15,37 @@ class SelectionYDebugView: View {
     lateinit var selectionYData: SelectionYData
     lateinit var selectionYParams: SelectionYParams
 
-    private val paintSelectionRatio = Paint().apply {
-        color = Color.BLUE
+    private val paintSelectionLine = Paint(ANTI_ALIAS_FLAG).apply {
         strokeWidth = 60f
         alpha = 150
         style = Paint.Style.STROKE
     }
 
-    private val paintSelectionText = Paint().apply {
-        color = Color.WHITE
+    private val paintSelectionText = Paint(ANTI_ALIAS_FLAG).apply {
         textSize = 64f
     }
 
-    private val paintScrollPxText = Paint().apply {
-        color = Color.BLACK
+    private val paintDistanceText = Paint(ANTI_ALIAS_FLAG).apply {
         textSize = 64f
     }
 
-    private val paintCurvePrimary = Paint().apply {
-        color = Color.BLUE
-        strokeWidth = 6f
+    private val paintCurvePrimary = Paint(ANTI_ALIAS_FLAG).apply {
+        strokeWidth = 9f
         style = Paint.Style.STROKE
     }
 
-    private val paintCurveSecondary = Paint().apply {
-        color = Color.BLUE
-        strokeWidth = 1f
+    private val paintCurveSecondary = Paint(ANTI_ALIAS_FLAG).apply {
+        strokeWidth = 3f
         style = Paint.Style.STROKE
     }
 
-    private val paintPlotMid = Paint().apply {
-        color = Color.BLACK
-        strokeWidth = 1f
+    private val paintPlotMid = Paint(ANTI_ALIAS_FLAG).apply {
+        strokeWidth = 3f
         style = Paint.Style.STROKE
         pathEffect = DashPathEffect(floatArrayOf(10f, 10f), 0f)
     }
 
     private val paintUnknownArea = Paint().apply {
-        color = Color.GRAY
-        alpha = 2
         style = Paint.Style.FILL
     }
 
@@ -62,7 +54,18 @@ class SelectionYDebugView: View {
         context: Context,
         attrs: AttributeSet? = null,
         defStyleAttr: Int = android.R.attr.textViewStyle
-    ) : super(context, attrs, defStyleAttr)
+    ) : super(context, attrs, defStyleAttr) {
+
+        val a = context.obtainStyledAttributes(attrs, R.styleable.SelectionDebugView)
+        paintCurvePrimary.color = a.getColor(R.styleable.SelectionDebugView_primaryCurveColor, -1)
+        paintCurveSecondary.color = a.getColor(R.styleable.SelectionDebugView_secondaryCurveColor, -1)
+        paintDistanceText.color = a.getColor(R.styleable.SelectionDebugView_distanceTextColor, -1)
+        paintSelectionText.color = a.getColor(R.styleable.SelectionDebugView_selectionTextColor, -1)
+        paintSelectionLine.color = a.getColor(R.styleable.SelectionDebugView_selectionLineColor, -1)
+        paintUnknownArea.color = a.getColor(R.styleable.SelectionDebugView_unknownAreaColor, -1)
+        paintPlotMid.color = paintCurveSecondary.color
+        a.recycle()
+    }
 
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)

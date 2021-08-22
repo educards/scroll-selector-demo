@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="SelectionDebugView">
+        <attr name="primaryCurveColor" format="color" />
+        <attr name="secondaryCurveColor" format="color" />
+        <attr name="unknownAreaColor" format="color" />
+        <attr name="distanceTextColor" format="color" />
+        <attr name="selectionTextColor" format="color" />
+        <attr name="selectionLineColor" format="color" />
+    </declare-styleable>
+
+</resources>
