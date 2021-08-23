@@ -17,4 +17,13 @@
 
     </style>
 
+    <style name="Widget.Android.SelectionDebugView" parent="">
+        <item name="primaryCurveColor">@color/purple_200</item>
+        <item name="secondaryCurveColor">@color/purple_200</item>
+        <item name="unknownAreaColor">#27FFFFFF</item>
+        <item name="distanceTextColor">#CDCDCD</item>
+        <item name="selectionTextColor">@color/white</item>
+        <item name="selectionLineColor">@color/purple_200</item>
+    </style>
+
 </resources>
