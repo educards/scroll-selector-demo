@@ -15,7 +15,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
-        <com.educards.scrollselectionviewdemo.SelectionDebugView
+        <com.educards.scrollselector.demo.SelectionDebugView
             android:id="@+id/selection_y_debug_view"
             style="@style/Widget.Android.SelectionDebugView"
             android:layout_width="match_parent"

@@ -1,4 +1,4 @@
-package com.educards.scrollselectionviewdemo
+package com.educards.scrollselector.demo
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -15,7 +15,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.OnScrollListener
 import androidx.recyclerview.widget.SimpleItemAnimator
-import com.educards.scrollselectionviewdemo.databinding.ActivityMainBinding
+import com.educards.scrollselector.demo.databinding.ActivityMainBinding
 import kotlin.math.absoluteValue
 
 class MainActivity : AppCompatActivity() {

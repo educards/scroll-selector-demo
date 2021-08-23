@@ -1,4 +1,4 @@
-package com.educards.scrollselectionviewdemo
+package com.educards.scrollselector.demo
 
 data class SelectionYData(
 

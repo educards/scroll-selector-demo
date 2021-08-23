@@ -1,4 +1,4 @@
-package com.educards.scrollselectionviewdemo
+package com.educards.scrollselector.demo
 
 import android.os.Build
 import android.util.Log

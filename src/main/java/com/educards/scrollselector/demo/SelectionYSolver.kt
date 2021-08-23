@@ -1,4 +1,4 @@
-package com.educards.scrollselectionviewdemo
+package com.educards.scrollselector.demo
 
 import java.lang.Math.cbrt
 import kotlin.math.*
