@@ -15,22 +15,7 @@ class SelectionYSolver {
     ): Double? {
 
         return if (edgeDistanceTopPx != null && edgeDistanceBottomPx != null) {
-            val rTopY = curveTop(selectionYParams, edgeDistanceTopPx.absoluteValue.toDouble())
-            val rBottomY = curveBottom(selectionYParams, (selectionYParams.contentBottomPerceptionRangePx - edgeDistanceBottomPx).toDouble())
-            if (rTopY != null && rBottomY != null) {
-                val rX = edgeDistanceTopPx.absoluteValue
-                val rTotalWidth = edgeDistanceTopPx.absoluteValue + edgeDistanceBottomPx
-                val rBottomStart = rTotalWidth - selectionYParams.contentBottomPerceptionRangePx
-                val rWeightFrom = max(0, rBottomStart)
-                val rWeightTo = min(selectionYParams.contentTopPerceptionRangePx, rTotalWidth)
-                val rWeightDist = rWeightTo - rWeightFrom
-                var topWeight = if (rX < rWeightFrom) 1.0 else if (rX > rWeightTo) 0.0 else 1 - ((rX - rWeightFrom).toDouble() / rWeightDist)
-                topWeight = sqrt(topWeight)
-                var bottomWeight = if (rX < rWeightFrom) 0.0 else if (rX > rWeightTo) 1.0 else (rX - rWeightFrom).toDouble() / rWeightDist
-                bottomWeight = sqrt(bottomWeight)
-                val rTopYCentered = rTopY - selectionYParams.selectionYMid
-                (rTopYCentered * topWeight + rBottomY * bottomWeight) + selectionYParams.selectionYMid
-            } else null
+            curveTopBottom(selectionYParams, edgeDistanceTopPx, edgeDistanceBottomPx)
 
         } else if (edgeDistanceTopPx != null) {
             curveTop(selectionYParams, edgeDistanceTopPx.toDouble())
@@ -42,6 +27,29 @@ class SelectionYSolver {
         } else {
             selectionYParams.selectionYMid
         }
+    }
+
+    fun curveTopBottom(
+        selectionYParams: SelectionYParams,
+        edgeDistanceTopPx: Int,
+        edgeDistanceBottomPx: Int
+    ): Double? {
+        val rTopY = curveTop(selectionYParams, edgeDistanceTopPx.absoluteValue.toDouble())
+        val rBottomY = curveBottom(selectionYParams, (selectionYParams.contentBottomPerceptionRangePx - edgeDistanceBottomPx).toDouble())
+        return if (rTopY != null && rBottomY != null) {
+            val rX = edgeDistanceTopPx.absoluteValue
+            val rTotalWidth = edgeDistanceTopPx.absoluteValue + edgeDistanceBottomPx
+            val rBottomStart = rTotalWidth - selectionYParams.contentBottomPerceptionRangePx
+            val rWeightFrom = max(0, rBottomStart)
+            val rWeightTo = min(selectionYParams.contentTopPerceptionRangePx, rTotalWidth)
+            val rWeightDist = rWeightTo - rWeightFrom
+            var topWeight = if (rX < rWeightFrom) 1.0 else if (rX > rWeightTo) 0.0 else 1 - ((rX - rWeightFrom).toDouble() / rWeightDist)
+            topWeight = sqrt(topWeight)
+            var bottomWeight = if (rX < rWeightFrom) 0.0 else if (rX > rWeightTo) 1.0 else (rX - rWeightFrom).toDouble() / rWeightDist
+            bottomWeight = sqrt(bottomWeight)
+            val rTopYCentered = rTopY - selectionYParams.selectionYMid
+            (rTopYCentered * topWeight + rBottomY * bottomWeight) + selectionYParams.selectionYMid
+        } else null
     }
 
     fun curveTop(
@@ -243,6 +251,7 @@ class SelectionYSolver {
     private inline fun approximately(a: Double, b: Double): Boolean = abs(a-b) < 0.000001
 
     companion object {
+
         const val TAG = "SelectionYSolver"
 
         private const val TAU = 2 * Math.PI

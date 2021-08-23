@@ -171,17 +171,19 @@ class SelectionDebugView: View {
                 canvas?.drawPoint(i.toFloat(), rBottomYPlotted.toFloat() * height, paintCurveSecondary)
             }
 
-            val rComposedY = if (rTopY != null && rBottomY != null) {
-                val rWeightFrom = max(rTopStart, rBottomStart)
-                val rWeightTo = min(rTopStart + rTopPerceptRange, rBottomStart + rBottomPerceptRange)
-                val rWeightDist = rWeightTo - rWeightFrom
-                var topWeight = if (rX < rWeightFrom) 1.0 else if (rX > rWeightTo) 0.0 else 1 - ((rX - rWeightFrom).toDouble() / rWeightDist)
-                topWeight = sqrt(topWeight)
-                var bottomWeight = if (rX < rWeightFrom) 0.0 else if (rX > rWeightTo) 1.0 else (rX - rWeightFrom).toDouble() / rWeightDist
-                bottomWeight = sqrt(bottomWeight)
-                val rTopYCentered = rTopY - selectionYParams.selectionYMid
-                (rTopYCentered * topWeight + rBottomY * bottomWeight) + selectionYParams.selectionYMid
-            } else null
+            val rComposedY = when {
+                rX < max(rTopStart, rBottomStart) -> {
+                    rTopY
+                }
+                rX > min(rTopStart + selectionYParams.contentTopPerceptionRangePx, rBottomStart + selectionYParams.contentBottomPerceptionRangePx) -> {
+                    rBottomY?.plus(selectionYParams.selectionYMid)
+                }
+                else -> {
+                    val edgeDistanceTopPx = rX - rTopStart
+                    val edgeDistanceBottomPx = selectionYParams.contentBottomPerceptionRangePx - (rX - rBottomStart)
+                    selectionYSolver.curveTopBottom(selectionYParams, edgeDistanceTopPx, edgeDistanceBottomPx)
+                }
+            }
             if (rComposedY != null) canvas?.drawPoint(i.toFloat(), rComposedY.toFloat() * height, paintCurvePrimary)
         }
     }
