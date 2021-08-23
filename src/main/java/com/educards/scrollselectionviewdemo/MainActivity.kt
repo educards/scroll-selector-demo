@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.text.Html
 import android.text.Spannable
 import android.text.Spanned
+import android.text.style.BackgroundColorSpan
 import android.text.style.ForegroundColorSpan
 import android.util.Log
 import android.view.View
@@ -31,9 +32,8 @@ class MainActivity : AppCompatActivity() {
 
     private val breakIterator = BreakIterator()
 
-    private val sentenceHighlightSpan by lazy {
-        ForegroundColorSpan(resources.getColor(R.color.purple_700))
-    }
+    private val backgroundHighlightSpan by lazy { BackgroundColorSpan(resources.getColor(R.color.selectedSentenceBackground)) }
+    private val foregroundHighlightSpan by lazy { ForegroundColorSpan(resources.getColor(R.color.selectedSentenceForeground)) }
 
     private var currentHighlightItemPos = -1
     private var currentHighlightOffsets: Pair<Int, Int>? = null
@@ -242,7 +242,8 @@ class MainActivity : AppCompatActivity() {
         val sentenceDetectionOffset = lineOffsets.first + (lineOffsets.second - lineOffsets.first) / 2
         val sentenceInterval = breakIterator.getSentenceInterval(spannable, sentenceDetectionOffset)
 
-        spannable.setSpan(sentenceHighlightSpan, sentenceInterval.first, sentenceInterval.second, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        spannable.setSpan(backgroundHighlightSpan, sentenceInterval.first, sentenceInterval.second, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        spannable.setSpan(foregroundHighlightSpan, sentenceInterval.first, sentenceInterval.second, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
 
         currentHighlightItemPos = childPos
         currentHighlightOffsets = lineOffsets
@@ -256,7 +257,8 @@ class MainActivity : AppCompatActivity() {
         adapter: RecyclerViewAdapter
     ) {
         val spannable = getSpannable(textView)
-        spannable.removeSpan(sentenceHighlightSpan)
+        spannable.removeSpan(backgroundHighlightSpan)
+        spannable.removeSpan(foregroundHighlightSpan)
 
         currentHighlightItemPos = -1
         currentHighlightOffsets = null
