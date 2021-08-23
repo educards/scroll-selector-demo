@@ -100,11 +100,13 @@ class SelectionDebugView: View {
         } else if (rBottomDist != null) {
             plotBottom(rTopPerceptRange, canvas, r2pCoef, rBottomPerceptRange, rBottomDist)
         } else {
-            plotNone(canvas, pMidY)
+            plotNone(canvas, rTopPerceptRange, pMidY, r2pCoef)
         }
     }
 
-    private fun plotNone(canvas: Canvas?, pMidY: Float) {
+    private fun plotNone(canvas: Canvas?, rTopPerceptRange: Int, pMidY: Float, r2pCoef: Float) {
+        val pDistLineX = rTopPerceptRange * r2pCoef
+        canvas?.drawLine(pDistLineX, 0f, pDistLineX, height.toFloat(), paintPlotMid)
         canvas?.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paintUnknownArea)
         canvas?.drawLine(0f, pMidY, width.toFloat(), pMidY, paintCurvePrimary)
     }
