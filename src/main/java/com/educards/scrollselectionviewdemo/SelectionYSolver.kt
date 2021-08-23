@@ -34,11 +34,11 @@ class SelectionYSolver {
         edgeDistanceTopPx: Int,
         edgeDistanceBottomPx: Int
     ): Double? {
-        val rTopY = curveTop(selectionYParams, edgeDistanceTopPx.absoluteValue.toDouble())
+        val rTopY = curveTop(selectionYParams, edgeDistanceTopPx.toDouble())
         val rBottomY = curveBottom(selectionYParams, (selectionYParams.contentBottomPerceptionRangePx - edgeDistanceBottomPx).toDouble())
         return if (rTopY != null && rBottomY != null) {
-            val rX = edgeDistanceTopPx.absoluteValue
-            val rTotalWidth = edgeDistanceTopPx.absoluteValue + edgeDistanceBottomPx
+            val rX = edgeDistanceTopPx
+            val rTotalWidth = edgeDistanceTopPx + edgeDistanceBottomPx
             val rBottomStart = rTotalWidth - selectionYParams.contentBottomPerceptionRangePx
             val rWeightFrom = max(0, rBottomStart)
             val rWeightTo = min(selectionYParams.contentTopPerceptionRangePx, rTotalWidth)
@@ -59,7 +59,7 @@ class SelectionYSolver {
         selectionYParams.contentTopPerceptionRangePx.toDouble(),
         selectionYParams.selectionYMid,
         1.0 - selectionYParams.stiffness,
-        edgeDistanceTopPx.absoluteValue
+        edgeDistanceTopPx
     )?.second
 
     fun curveBottom(selectionYParams: SelectionYParams, x: Double) = curve(

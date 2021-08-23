@@ -82,7 +82,7 @@ class SelectionDebugView: View {
 
     private fun plotCurves(canvas: Canvas?) {
 
-        val rTopDist = selectionYData.contentTopDistPx?.absoluteValue
+        val rTopDist = selectionYData.contentTopDistPx
         val rTopPerceptRange = selectionYParams.contentTopPerceptionRangePx
         val rBottomDist = selectionYData.contentBottomDistPx
         val rBottomPerceptRange = selectionYParams.contentBottomPerceptionRangePx

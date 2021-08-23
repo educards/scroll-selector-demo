@@ -216,7 +216,7 @@ class MainActivity : AppCompatActivity() {
             return if (exploredDistance.absoluteValue >= perceptionRangePx) {
                 null
             } else {
-                exploredDistance
+                exploredDistance.absoluteValue
             }
         }
     }
