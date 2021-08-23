@@ -90,18 +90,15 @@ class SelectionDebugView: View {
         val r2pCoef = width.toFloat() / rTotalPerceptRange.toFloat()
         val rMidY = selectionYParams.selectionYMid
 
-        val pTopPerceptRange = rTopPerceptRange * r2pCoef
-        canvas?.drawLine(pTopPerceptRange, 0f, pTopPerceptRange, height.toFloat(), paintPlotMid)
-
         val pMidY = rMidY.toFloat() * height
         canvas?.drawLine(0f, pMidY, width.toFloat(), pMidY, paintPlotMid)
 
         if (rTopDist != null && rBottomDist != null) {
             plotTopBottom(rTopDist, rBottomDist, rTopPerceptRange, rTotalPerceptRange, rBottomPerceptRange, canvas, r2pCoef)
         } else if (rTopDist != null) {
-            plotTop(canvas, rTopPerceptRange, r2pCoef)
+            plotTop(canvas, rTopPerceptRange, rTopDist, r2pCoef)
         } else if (rBottomDist != null) {
-            plotBottom(rTopPerceptRange, canvas, r2pCoef, rBottomPerceptRange)
+            plotBottom(rTopPerceptRange, canvas, r2pCoef, rBottomPerceptRange, rBottomDist)
         } else {
             plotNone(canvas, pMidY)
         }
@@ -116,9 +113,13 @@ class SelectionDebugView: View {
         rTopPerceptRange: Int,
         canvas: Canvas?,
         r2pCoef: Float,
-        rBottomPerceptRange: Int
+        rBottomPerceptRange: Int,
+        rBottomDist: Int
     ) {
         val rBottomStart = rTopPerceptRange
+
+        val pDistLineX = (rTopPerceptRange + selectionYParams.contentBottomPerceptionRangePx - rBottomDist) * r2pCoef
+        canvas?.drawLine(pDistLineX, 0f, pDistLineX, height.toFloat(), paintPlotMid)
 
         canvas?.drawRect(0f, 0f, rBottomStart * r2pCoef, bottom.toFloat(), paintUnknownArea)
 
@@ -129,9 +130,12 @@ class SelectionDebugView: View {
         }
     }
 
-    private fun plotTop(canvas: Canvas?, rTopPerceptRange: Int, r2pCoef: Float) {
+    private fun plotTop(canvas: Canvas?, rTopPerceptRange: Int, rTopDist: Int, r2pCoef: Float) {
 
         val rTopStart = 0
+
+        val pDistLineX = rTopDist * r2pCoef
+        canvas?.drawLine(pDistLineX, 0f, pDistLineX, height.toFloat(), paintPlotMid)
 
         canvas?.drawRect(rTopPerceptRange * r2pCoef, 0f, width.toFloat(), bottom.toFloat(), paintUnknownArea)
 
@@ -155,6 +159,9 @@ class SelectionDebugView: View {
         val rTopBottomPerceptRatio = rTopPerceptRange.toDouble() / rTotalPerceptRange.toDouble()
         val rTopStart = (rTopPerceptRange - (rTotalDist * rTopBottomPerceptRatio)).toInt()
         val rBottomStart = (rTopPerceptRange - rBottomPerceptRange + rTotalDist * (1.0 - rTopBottomPerceptRatio)).toInt()
+
+        val pDistLineX = (rTopStart + rTopDist) * r2pCoef
+        canvas?.drawLine(pDistLineX, 0f, pDistLineX, height.toFloat(), paintPlotMid)
 
         canvas?.drawRect(0f, 0f, rTopStart * r2pCoef, bottom.toFloat(), paintUnknownArea)
         canvas?.drawRect(((rTopStart + rTotalDist) * r2pCoef).toFloat(), 0f, width.toFloat(), bottom.toFloat(), paintUnknownArea)
