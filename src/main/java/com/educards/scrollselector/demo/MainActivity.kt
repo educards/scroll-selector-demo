@@ -15,6 +15,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.OnScrollListener
 import androidx.recyclerview.widget.SimpleItemAnimator
+import com.educards.scrollselector.InputParams
+import com.educards.scrollselector.SelectionRatioSolver
 import com.educards.scrollselector.demo.databinding.ActivityMainBinding
 import kotlin.math.absoluteValue
 
@@ -24,9 +26,9 @@ class MainActivity : AppCompatActivity() {
         DataBindingUtil.inflate(layoutInflater, R.layout.activity_main, null, false ) as ActivityMainBinding
     }
 
-    private val solver = SelectionYSolver()
-    private val selectionYParams = SelectionYParams()
-    private val selectionYData = SelectionYData()
+    private val selectionSolver = SelectionRatioSolver()
+    private val selectionYParams = InputParams()
+    private val selectionYData = SelectionData()
 
     private val layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
 
@@ -46,18 +48,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initSelectionYDebugView() {
-        binding.selectionYDebugView.selectionYSolver = solver
-        binding.selectionYDebugView.selectionYData = selectionYData
-        binding.selectionYDebugView.selectionYParams = selectionYParams
+        binding.selectionYDebugView.selectionSolver = selectionSolver
+        binding.selectionYDebugView.selectionData = selectionYData
+        binding.selectionYDebugView.selectionParams = selectionYParams
 
         binding.inputParamControls.contentTopPerceptionRangePx.addOnChangeListener { slider, value, fromUser ->
-            selectionYParams.contentTopPerceptionRangePx = value.toInt()
+            selectionYParams.topPerceptionRange = value.toInt()
             binding.inputParamControls.contentTopPerceptionRangePxValue.text = "$value px"
             updateSelectionYDebugView()
         }
 
         binding.inputParamControls.contentBottomPerceptionRangePx.addOnChangeListener { slider, value, fromUser ->
-            selectionYParams.contentBottomPerceptionRangePx = value.toInt()
+            selectionYParams.bottomPerceptionRange = value.toInt()
             binding.inputParamControls.contentBottomPerceptionRangePxValue.text = "$value px"
             updateSelectionYDebugView()
         }
@@ -74,8 +76,8 @@ class MainActivity : AppCompatActivity() {
             updateSelectionYDebugView()
         }
 
-        binding.inputParamControls.contentTopPerceptionRangePx.value = selectionYParams.contentTopPerceptionRangePx.toFloat()
-        binding.inputParamControls.contentBottomPerceptionRangePx.value = selectionYParams.contentBottomPerceptionRangePx.toFloat()
+        binding.inputParamControls.contentTopPerceptionRangePx.value = selectionYParams.topPerceptionRange.toFloat()
+        binding.inputParamControls.contentBottomPerceptionRangePx.value = selectionYParams.bottomPerceptionRange.toFloat()
         binding.inputParamControls.selectionYMid.value = selectionYParams.selectionYMid.toFloat()
         binding.inputParamControls.stiffness.value = selectionYParams.selectionYMid.toFloat()
     }
@@ -106,10 +108,10 @@ class MainActivity : AppCompatActivity() {
                 // interested only in vertical changes (y)
                 if (dy != 0) {
 
-                    selectionYData.contentTopDistPx = detectEdge(adapter, selectionYParams.contentTopPerceptionRangePx, false)
-                    selectionYData.contentBottomDistPx = detectEdge(adapter, selectionYParams.contentBottomPerceptionRangePx, true)
+                    selectionYData.contentTopDistPx = detectEdge(adapter, selectionYParams.topPerceptionRange, false)
+                    selectionYData.contentBottomDistPx = detectEdge(adapter, selectionYParams.bottomPerceptionRange, true)
 
-                    selectionYData.selectionY = solver.calculateSelectionYRatio(
+                    selectionYData.selectionY = selectionSolver.computeSelectionRatio(
                         selectionYParams, selectionYData.contentTopDistPx, selectionYData.contentBottomDistPx
                     )
 

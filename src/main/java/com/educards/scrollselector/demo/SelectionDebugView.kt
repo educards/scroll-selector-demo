@@ -5,6 +5,8 @@ import android.graphics.*
 import android.graphics.Paint.ANTI_ALIAS_FLAG
 import android.util.AttributeSet
 import android.view.View
+import com.educards.scrollselector.InputParams
+import com.educards.scrollselector.SelectionRatioSolver
 import kotlin.math.*
 
 /**
@@ -17,9 +19,9 @@ class SelectionDebugView: View {
     //   p* - plot domain
     //   r* - real domain
 
-    lateinit var selectionYSolver: SelectionYSolver
-    lateinit var selectionYData: SelectionYData
-    lateinit var selectionYParams: SelectionYParams
+    lateinit var selectionSolver: SelectionRatioSolver
+    lateinit var selectionData: SelectionData
+    lateinit var selectionParams: InputParams
 
     private val paintSelectionLine = Paint(ANTI_ALIAS_FLAG).apply {
         strokeWidth = 60f
@@ -82,13 +84,13 @@ class SelectionDebugView: View {
 
     private fun plotCurves(canvas: Canvas?) {
 
-        val rTopDist = selectionYData.contentTopDistPx
-        val rTopPerceptRange = selectionYParams.contentTopPerceptionRangePx
-        val rBottomDist = selectionYData.contentBottomDistPx
-        val rBottomPerceptRange = selectionYParams.contentBottomPerceptionRangePx
+        val rTopDist = selectionData.contentTopDistPx
+        val rTopPerceptRange = selectionParams.topPerceptionRange
+        val rBottomDist = selectionData.contentBottomDistPx
+        val rBottomPerceptRange = selectionParams.bottomPerceptionRange
         val rTotalPerceptRange = rTopPerceptRange + rBottomPerceptRange
         val r2pCoef = width.toFloat() / rTotalPerceptRange.toFloat()
-        val rMidY = selectionYParams.selectionYMid
+        val rMidY = selectionParams.selectionYMid
 
         val pMidY = rMidY.toFloat() * height
         canvas?.drawLine(0f, pMidY, width.toFloat(), pMidY, paintPlotMid)
@@ -120,14 +122,14 @@ class SelectionDebugView: View {
     ) {
         val rBottomStart = rTopPerceptRange
 
-        val pDistLineX = (rTopPerceptRange + selectionYParams.contentBottomPerceptionRangePx - rBottomDist) * r2pCoef
+        val pDistLineX = (rTopPerceptRange + selectionParams.bottomPerceptionRange - rBottomDist) * r2pCoef
         canvas?.drawLine(pDistLineX, 0f, pDistLineX, height.toFloat(), paintPlotMid)
 
         canvas?.drawRect(0f, 0f, rBottomStart * r2pCoef, bottom.toFloat(), paintUnknownArea)
 
         for (i in 0..width) {
             val rX = getRX(i, r2pCoef)
-            val rBottomY = calculateBottomY(rX, rBottomStart, rBottomPerceptRange, selectionYParams.selectionYMid)
+            val rBottomY = calculateBottomY(rX, rBottomStart, rBottomPerceptRange, selectionParams.selectionYMid)
             if (rBottomY != null) canvas?.drawPoint(i.toFloat(), rBottomY.toFloat() * height, paintCurvePrimary)
         }
     }
@@ -176,7 +178,7 @@ class SelectionDebugView: View {
 
             val rBottomY = calculateBottomY(rX, rBottomStart, rBottomPerceptRange, 0.0)
             if (rBottomY != null) {
-                val rBottomYPlotted = rBottomY + selectionYParams.selectionYMid
+                val rBottomYPlotted = rBottomY + selectionParams.selectionYMid
                 canvas?.drawPoint(i.toFloat(), rBottomYPlotted.toFloat() * height, paintCurveSecondary)
             }
 
@@ -184,13 +186,13 @@ class SelectionDebugView: View {
                 rX < max(rTopStart, rBottomStart) -> {
                     rTopY
                 }
-                rX > min(rTopStart + selectionYParams.contentTopPerceptionRangePx, rBottomStart + selectionYParams.contentBottomPerceptionRangePx) -> {
-                    rBottomY?.plus(selectionYParams.selectionYMid)
+                rX > min(rTopStart + selectionParams.topPerceptionRange, rBottomStart + selectionParams.bottomPerceptionRange) -> {
+                    rBottomY?.plus(selectionParams.selectionYMid)
                 }
                 else -> {
                     val edgeDistanceTopPx = rX - rTopStart
-                    val edgeDistanceBottomPx = selectionYParams.contentBottomPerceptionRangePx - (rX - rBottomStart)
-                    selectionYSolver.curveTopBottom(selectionYParams, edgeDistanceTopPx, edgeDistanceBottomPx)
+                    val edgeDistanceBottomPx = selectionParams.bottomPerceptionRange - (rX - rBottomStart)
+                    selectionSolver.curveMiddle(selectionParams, edgeDistanceTopPx, edgeDistanceBottomPx)
                 }
             }
             if (rComposedY != null) canvas?.drawPoint(i.toFloat(), rComposedY.toFloat() * height, paintCurvePrimary)
@@ -202,11 +204,11 @@ class SelectionDebugView: View {
             0.0
         }
         rX > rTopStart + rTopPerceptRange -> {
-            selectionYParams.selectionYMid
+            selectionParams.selectionYMid
         }
         else -> {
             val rEdgeDistanceTopPx = (rX - rTopStart).toDouble()
-            selectionYSolver.curveTop(selectionYParams, rEdgeDistanceTopPx)
+            selectionSolver.curveTop(selectionParams, rEdgeDistanceTopPx)
         }
     }
 
@@ -216,11 +218,11 @@ class SelectionDebugView: View {
                 0.0
             }
             rX > rBottomStart + rBottomPerceptRange -> {
-                1.0 - selectionYParams.selectionYMid
+                1.0 - selectionParams.selectionYMid
             }
             else -> {
                 val x = (rX - rBottomStart).toDouble()
-                selectionYSolver.curveBottom(selectionYParams, x)
+                selectionSolver.curveBottom(selectionParams, x)
             }
         }
         return y?.plus(yShift)
@@ -230,7 +232,7 @@ class SelectionDebugView: View {
 
     private fun plotSelectionAndDistTexts(canvas: Canvas?) {
 
-        selectionYData?.let { data ->
+        selectionData?.let { data ->
             data.selectionY?.let { selection ->
                 val selectionYPx = (height * selection).toFloat()
 

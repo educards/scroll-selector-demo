@@ -1,6 +1,6 @@
 package com.educards.scrollselector.demo
 
-data class SelectionYData(
+data class SelectionData(
 
     var contentTopDistPx: Int? = null,
 
