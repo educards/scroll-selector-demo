@@ -84,9 +84,9 @@ class SelectionDebugView: View {
 
     private fun plotCurves(canvas: Canvas?) {
 
-        val rTopDist = selectionData.contentTopDistPx
+        val rTopDist = selectionData.contentTopDist
         val rTopPerceptRange = selectionParams.topPerceptionRange
-        val rBottomDist = selectionData.contentBottomDistPx
+        val rBottomDist = selectionData.contentBottomDist
         val rBottomPerceptRange = selectionParams.bottomPerceptionRange
         val rTotalPerceptRange = rTopPerceptRange + rBottomPerceptRange
         val r2pCoef = width.toFloat() / rTotalPerceptRange.toFloat()
@@ -233,18 +233,18 @@ class SelectionDebugView: View {
     private fun plotSelectionAndDistTexts(canvas: Canvas?) {
 
         selectionData?.let { data ->
-            data.selectionY?.let { selection ->
+            data.selectionRatio?.let { selection ->
                 val selectionYPx = (height * selection).toFloat()
 
-                data.contentTopDistPx.let { topDist ->
+                data.contentTopDist.let { topDist ->
                     val distText = if (topDist == null) "beyond perception" else "$topDist px"
                     canvas?.drawText("top distance: $distText", 72f, selectionYPx - 48f, paintDistanceText)
                 }
 
                 canvas?.drawLine(0f, selectionYPx, width.toFloat(), selectionYPx, paintSelectionLine)
-                canvas?.drawText("selection: ${data.selectionY}", 72f, selectionYPx + 24f, paintSelectionText)
+                canvas?.drawText("selection ratio: ${data.selectionRatio}", 72f, selectionYPx + 24f, paintSelectionText)
 
-                data.contentBottomDistPx.let { bottomDist ->
+                data.contentBottomDist.let { bottomDist ->
                     val distText = if (bottomDist == null) "beyond perception" else "$bottomDist px"
                     canvas?.drawText("bottom distance: $distText", 72f, selectionYPx + 92f, paintDistanceText)
                 }

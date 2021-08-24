@@ -4,18 +4,10 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.Html
 import android.text.Spannable
-import android.text.Spanned
-import android.text.style.BackgroundColorSpan
-import android.text.style.ForegroundColorSpan
-import android.util.Log
-import android.widget.TextView
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.recyclerview.widget.RecyclerView.OnScrollListener
-import androidx.recyclerview.widget.SimpleItemAnimator
-import com.educards.scrollselector.DistanceMeasure.Edge
-import com.educards.scrollselector.DistanceMeasureRecyclerView
+import com.educards.scrollselector.RecyclerViewDistanceMeasure
 import com.educards.scrollselector.InputParams
 import com.educards.scrollselector.SelectionRatioSolver
 import com.educards.scrollselector.demo.databinding.ActivityMainBinding
@@ -31,29 +23,22 @@ class MainActivity : AppCompatActivity() {
     private val selectionData = SelectionData()
 
     private val recyclerViewAdapter = RecyclerViewAdapter(DEMO_DATA)
-    private val layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
+    private val linearLayoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
 
     private val distanceMeasure by lazy {
-        DistanceMeasureRecyclerView(
+        RecyclerViewDistanceMeasure(
             binding.recyclerView,
             recyclerViewAdapter,
-            layoutManager
+            linearLayoutManager
         )
     }
-
-    private val breakIterator = BreakIterator()
-
-    private val backgroundHighlightSpan by lazy { BackgroundColorSpan(resources.getColor(R.color.selectedSentenceBackground)) }
-    private val foregroundHighlightSpan by lazy { ForegroundColorSpan(resources.getColor(R.color.selectedSentenceForeground)) }
-
-    private var currentHighlightItemPos = -1
-    private var currentHighlightOffsets: Pair<Int, Int>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         initRecyclerView()
         initSelectionDebugView()
+        initRecyclerViewSentenceSelector()
     }
 
     private fun initSelectionDebugView() {
@@ -96,146 +81,33 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initRecyclerView() {
-
         binding.recyclerView.setHasFixedSize(true)
-        binding.recyclerView.layoutManager = layoutManager
+        binding.recyclerView.layoutManager = linearLayoutManager
         binding.recyclerView.adapter = recyclerViewAdapter
+    }
 
-        // The items of recyclerView are frequently updated to render the updated
-        // highlight span. However, having animations turned on while scrolling
-        // the recyclerView and also rendering the updated item in the same time
-        // causes the UI to flicker.
-        // Source: https://stackoverflow.com/a/42379756/915756
-        disableItemAnimations()
+    private fun initRecyclerViewSentenceSelector() {
 
-        binding.recyclerView.addOnScrollListener(object: OnScrollListener() {
+        object : RecyclerViewSentenceSelector<RecyclerViewAdapter.ViewHolder>(
+            this@MainActivity,
+            binding.recyclerView,
+            recyclerViewAdapter,
+            linearLayoutManager,
+            inputParams
+        ) {
+            override fun onUpdateSelection(selectionRatio: Double?, topDistance: Int?, bottomDistance: Int?) {
 
-            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                // update sentence selection
+                super.onUpdateSelection(selectionRatio, topDistance, bottomDistance)
 
-                // interested only in vertical changes (y)
-                if (dy != 0) {
-
-                    selectionData.contentTopDistPx = distanceMeasure.measure(inputParams, Edge.TOP)
-                    selectionData.contentBottomDistPx = distanceMeasure.measure(inputParams, Edge.BOTTOM)
-
-                    selectionData.selectionY = selectionSolver.computeSelectionRatio(
-                        inputParams, selectionData.contentTopDistPx, selectionData.contentBottomDistPx
-                    )
-
-                    val selectionYRatio = selectionData?.selectionY
-                    if (selectionYRatio == null) {
-                        if (currentHighlightItemPos > -1) {
-                            val textView = findChildByPosition(layoutManager, currentHighlightItemPos)
-                            if (textView != null) {
-                                removeSpan(textView, recyclerViewAdapter)
-                            }
-                        }
-
-                    } else {
-                        val selectionYPx = calculateSelectionYPx(selectionYRatio)
-                        if (BuildConfig.DEBUG) Log.d(TAG, "selectionY: $selectionYPx")
-
-                        updateSelectionDebugView()
-
-                        val layoutManager = recyclerView.layoutManager as LinearLayoutManager
-                        val firstChildPos = layoutManager.findFirstVisibleItemPosition()
-                        val lastChildPos = layoutManager.findLastVisibleItemPosition()
-                        for (childPos in firstChildPos..lastChildPos) {
-                            if (BuildConfig.DEBUG) Log.d(TAG, "childPos: $childPos")
-                            val childView = findChildByPosition(layoutManager, childPos)
-
-                            if (childView != null && childView.y <= selectionYPx && selectionYPx < childView.bottom) {
-
-                                val lineOffsets = getLineOffsets(childView, selectionYPx)
-                                if (lineOffsets != null) {
-
-                                    // If the span was previously added to another spannable (view)
-                                    // then we have to explicitly remove the span from this view.
-                                    if (currentHighlightItemPos >= 0 && currentHighlightItemPos != childPos) {
-                                        val textView = findChildByPosition(layoutManager, currentHighlightItemPos)
-                                        if (textView != null) {
-                                            removeSpan(textView, recyclerViewAdapter)
-                                        }
-                                    }
-
-                                    if (currentHighlightOffsets?.equals(lineOffsets) != true) {
-                                        setSpan(childView, childPos, lineOffsets, recyclerViewAdapter)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+                // update debug view
+                selectionData.selectionRatio = selectionRatio
+                selectionData.contentTopDist = topDistance
+                selectionData.contentBottomDist = bottomDistance
+                updateSelectionDebugView()
             }
-        })
-    }
-
-    private fun disableItemAnimations() {
-        (binding.recyclerView.itemAnimator as SimpleItemAnimator).supportsChangeAnimations = false
-    }
-
-    private fun findChildByPosition(layoutManager: LinearLayoutManager, childPos: Int): TextView? {
-        val childView = layoutManager.findViewByPosition(childPos)
-        return if (childView == null) null else childView as TextView
-    }
-
-    private fun getSpannable(textView: TextView): Spannable = textView?.text as Spannable
-
-    private fun calculateSelectionYPx(selectionYRatio: Double): Int {
-        return (binding.recyclerView.height * selectionYRatio).toInt()
-    }
-
-    private fun setSpan(
-        textView: TextView,
-        childPos: Int,
-        lineOffsets: Pair<Int, Int>,
-        adapter: RecyclerViewAdapter
-    ) {
-        val spannable = getSpannable(textView)
-        val sentenceDetectionOffset = lineOffsets.first + (lineOffsets.second - lineOffsets.first) / 2
-        val sentenceInterval = breakIterator.getSentenceInterval(spannable, sentenceDetectionOffset)
-
-        spannable.setSpan(backgroundHighlightSpan, sentenceInterval.first, sentenceInterval.second, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-        spannable.setSpan(foregroundHighlightSpan, sentenceInterval.first, sentenceInterval.second, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-
-        currentHighlightItemPos = childPos
-        currentHighlightOffsets = lineOffsets
-
-        // notify UI changed
-        binding.recyclerView.post { adapter.notifyItemChanged(childPos) }
-    }
-
-    private fun <T : RecyclerView.ViewHolder> removeSpan(
-        textView: TextView,
-        adapter: RecyclerView.Adapter<T>
-    ) {
-        val spannable = getSpannable(textView)
-        spannable.removeSpan(backgroundHighlightSpan)
-        spannable.removeSpan(foregroundHighlightSpan)
-
-        currentHighlightItemPos = -1
-        currentHighlightOffsets = null
-
-        // notify UI changed
-        binding.recyclerView.post { adapter.notifyItemChanged(currentHighlightItemPos) }
-    }
-
-    /**
-     * @param y Y coordinate relative to `RecyclerView` containing the `textView`
-     * @return Corresponding start and end text offsets of the line located at the provided
-     * `y` position.
-     */
-    private fun getLineOffsets(textView: TextView, y: Int): Pair<Int, Int>? {
-        return if (textView.y <= y && y < textView.bottom) {
-            val lineY = (y - textView.y).toInt()
-            val line = textView.layout.getLineForVertical(lineY)
-            Pair(
-                textView.layout.getLineStart(line),
-                textView.layout.getLineEnd(line)
-            )
-        } else {
-            null
         }
+
     }
 
     companion object {
