@@ -8,17 +8,17 @@ import android.text.Spanned
 import android.text.style.BackgroundColorSpan
 import android.text.style.ForegroundColorSpan
 import android.util.Log
-import android.view.View
 import android.widget.TextView
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.OnScrollListener
 import androidx.recyclerview.widget.SimpleItemAnimator
+import com.educards.scrollselector.DistanceMeasure.Edge
+import com.educards.scrollselector.DistanceMeasureRecyclerView
 import com.educards.scrollselector.InputParams
 import com.educards.scrollselector.SelectionRatioSolver
 import com.educards.scrollselector.demo.databinding.ActivityMainBinding
-import kotlin.math.absoluteValue
 
 class MainActivity : AppCompatActivity() {
 
@@ -27,10 +27,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private val selectionSolver = SelectionRatioSolver()
-    private val selectionYParams = InputParams()
-    private val selectionYData = SelectionData()
+    private val inputParams = InputParams()
+    private val selectionData = SelectionData()
 
+    private val recyclerViewAdapter = RecyclerViewAdapter(DEMO_DATA)
     private val layoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
+
+    private val distanceMeasure by lazy {
+        DistanceMeasureRecyclerView(
+            binding.recyclerView,
+            recyclerViewAdapter,
+            layoutManager
+        )
+    }
 
     private val breakIterator = BreakIterator()
 
@@ -44,55 +53,53 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         initRecyclerView()
-        initSelectionYDebugView()
+        initSelectionDebugView()
     }
 
-    private fun initSelectionYDebugView() {
-        binding.selectionYDebugView.selectionSolver = selectionSolver
-        binding.selectionYDebugView.selectionData = selectionYData
-        binding.selectionYDebugView.selectionParams = selectionYParams
+    private fun initSelectionDebugView() {
+        binding.selectionDebugView.selectionSolver = selectionSolver
+        binding.selectionDebugView.selectionData = selectionData
+        binding.selectionDebugView.selectionParams = inputParams
 
         binding.inputParamControls.contentTopPerceptionRangePx.addOnChangeListener { slider, value, fromUser ->
-            selectionYParams.topPerceptionRange = value.toInt()
+            inputParams.topPerceptionRange = value.toInt()
             binding.inputParamControls.contentTopPerceptionRangePxValue.text = "$value px"
-            updateSelectionYDebugView()
+            updateSelectionDebugView()
         }
 
         binding.inputParamControls.contentBottomPerceptionRangePx.addOnChangeListener { slider, value, fromUser ->
-            selectionYParams.bottomPerceptionRange = value.toInt()
+            inputParams.bottomPerceptionRange = value.toInt()
             binding.inputParamControls.contentBottomPerceptionRangePxValue.text = "$value px"
-            updateSelectionYDebugView()
+            updateSelectionDebugView()
         }
 
         binding.inputParamControls.selectionYMid.addOnChangeListener { slider, value, fromUser ->
-            selectionYParams.selectionYMid = value.toDouble()
+            inputParams.selectionYMid = value.toDouble()
             binding.inputParamControls.selectionYMidValue.text = value.toString()
-            updateSelectionYDebugView()
+            updateSelectionDebugView()
         }
 
         binding.inputParamControls.stiffness.addOnChangeListener { slider, value, fromUser ->
-            selectionYParams.stiffness = value.toDouble()
+            inputParams.stiffness = value.toDouble()
             binding.inputParamControls.stiffnessValue.text = value.toString()
-            updateSelectionYDebugView()
+            updateSelectionDebugView()
         }
 
-        binding.inputParamControls.contentTopPerceptionRangePx.value = selectionYParams.topPerceptionRange.toFloat()
-        binding.inputParamControls.contentBottomPerceptionRangePx.value = selectionYParams.bottomPerceptionRange.toFloat()
-        binding.inputParamControls.selectionYMid.value = selectionYParams.selectionYMid.toFloat()
-        binding.inputParamControls.stiffness.value = selectionYParams.selectionYMid.toFloat()
+        binding.inputParamControls.contentTopPerceptionRangePx.value = inputParams.topPerceptionRange.toFloat()
+        binding.inputParamControls.contentBottomPerceptionRangePx.value = inputParams.bottomPerceptionRange.toFloat()
+        binding.inputParamControls.selectionYMid.value = inputParams.selectionYMid.toFloat()
+        binding.inputParamControls.stiffness.value = inputParams.selectionYMid.toFloat()
     }
 
-    private fun updateSelectionYDebugView() {
-        binding.selectionYDebugView.invalidate()
+    private fun updateSelectionDebugView() {
+        binding.selectionDebugView.invalidate()
     }
 
     private fun initRecyclerView() {
 
-        val adapter = RecyclerViewAdapter(this, DEMO_DATA)
-
         binding.recyclerView.setHasFixedSize(true)
         binding.recyclerView.layoutManager = layoutManager
-        binding.recyclerView.adapter = adapter
+        binding.recyclerView.adapter = recyclerViewAdapter
 
         // The items of recyclerView are frequently updated to render the updated
         // highlight span. However, having animations turned on while scrolling
@@ -108,19 +115,19 @@ class MainActivity : AppCompatActivity() {
                 // interested only in vertical changes (y)
                 if (dy != 0) {
 
-                    selectionYData.contentTopDistPx = detectEdge(adapter, selectionYParams.topPerceptionRange, false)
-                    selectionYData.contentBottomDistPx = detectEdge(adapter, selectionYParams.bottomPerceptionRange, true)
+                    selectionData.contentTopDistPx = distanceMeasure.measure(inputParams, Edge.TOP)
+                    selectionData.contentBottomDistPx = distanceMeasure.measure(inputParams, Edge.BOTTOM)
 
-                    selectionYData.selectionY = selectionSolver.computeSelectionRatio(
-                        selectionYParams, selectionYData.contentTopDistPx, selectionYData.contentBottomDistPx
+                    selectionData.selectionY = selectionSolver.computeSelectionRatio(
+                        inputParams, selectionData.contentTopDistPx, selectionData.contentBottomDistPx
                     )
 
-                    val selectionYRatio = selectionYData?.selectionY
+                    val selectionYRatio = selectionData?.selectionY
                     if (selectionYRatio == null) {
                         if (currentHighlightItemPos > -1) {
                             val textView = findChildByPosition(layoutManager, currentHighlightItemPos)
                             if (textView != null) {
-                                removeSpan(textView, adapter)
+                                removeSpan(textView, recyclerViewAdapter)
                             }
                         }
 
@@ -128,7 +135,7 @@ class MainActivity : AppCompatActivity() {
                         val selectionYPx = calculateSelectionYPx(selectionYRatio)
                         if (BuildConfig.DEBUG) Log.d(TAG, "selectionY: $selectionYPx")
 
-                        updateSelectionYDebugView()
+                        updateSelectionDebugView()
 
                         val layoutManager = recyclerView.layoutManager as LinearLayoutManager
                         val firstChildPos = layoutManager.findFirstVisibleItemPosition()
@@ -147,12 +154,12 @@ class MainActivity : AppCompatActivity() {
                                     if (currentHighlightItemPos >= 0 && currentHighlightItemPos != childPos) {
                                         val textView = findChildByPosition(layoutManager, currentHighlightItemPos)
                                         if (textView != null) {
-                                            removeSpan(textView, adapter)
+                                            removeSpan(textView, recyclerViewAdapter)
                                         }
                                     }
 
                                     if (currentHighlightOffsets?.equals(lineOffsets) != true) {
-                                        setSpan(childView, childPos, lineOffsets, adapter)
+                                        setSpan(childView, childPos, lineOffsets, recyclerViewAdapter)
                                     }
                                 }
                             }
@@ -173,62 +180,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getSpannable(textView: TextView): Spannable = textView?.text as Spannable
-
-    private fun detectEdge(adapter: RecyclerViewAdapter, perceptionRangePx: Int, detectBottom: Boolean): Int? {
-
-        var positionToEvaluate = if (detectBottom) layoutManager.findLastVisibleItemPosition() else layoutManager.findFirstVisibleItemPosition()
-
-        if (positionToEvaluate == RecyclerView.NO_POSITION) {
-            return null
-
-        } else {
-
-            val firstChild = layoutManager.findViewByPosition(positionToEvaluate)
-                ?: throw RuntimeException("Requested child view has not been laid out")
-
-            var exploredDistance: Int = if (detectBottom) {
-                positionToEvaluate++
-                firstChild.y.toInt() + firstChild.height - binding.recyclerView.height
-            } else {
-                positionToEvaluate--
-                firstChild.y.toInt()
-            }
-
-            val phantomViewHolder = adapter.onCreateViewHolder(binding.recyclerView, 0)
-
-            // Evaluate views until the watchAheadDistance is met
-            // and there are children to evaluate.
-            while (exploredDistance.absoluteValue < perceptionRangePx
-                && 0 <= positionToEvaluate && positionToEvaluate < adapter.itemCount) {
-
-                // Previously we evaluated the very first or the very last child view (depending on the scroll direction).
-                // The next view to examine will therefore lie beyond the drawable boundary.
-                // To detect the height of the next/previous child we need to measure it offscreen.
-                var childView = createPhantomChild(adapter, phantomViewHolder, positionToEvaluate)
-
-                if (detectBottom) {
-                    positionToEvaluate++
-                    exploredDistance += childView.measuredHeight
-                } else {
-                    positionToEvaluate--
-                    exploredDistance -= childView.measuredHeight
-                }
-            }
-
-            return if (exploredDistance.absoluteValue >= perceptionRangePx) {
-                null
-            } else {
-                exploredDistance.absoluteValue
-            }
-        }
-    }
-
-    private fun createPhantomChild(adapter: RecyclerViewAdapter, phantomViewHolder: RecyclerViewAdapter.ViewHolder, position: Int): View {
-        adapter.onBindViewHolder(phantomViewHolder, position)
-        val childView = phantomViewHolder.textView
-        layoutManager.measureChild(childView, 0, 0)
-        return childView
-    }
 
     private fun calculateSelectionYPx(selectionYRatio: Double): Int {
         return (binding.recyclerView.height * selectionYRatio).toInt()
@@ -254,9 +205,9 @@ class MainActivity : AppCompatActivity() {
         binding.recyclerView.post { adapter.notifyItemChanged(childPos) }
     }
 
-    private fun removeSpan(
+    private fun <T : RecyclerView.ViewHolder> removeSpan(
         textView: TextView,
-        adapter: RecyclerViewAdapter
+        adapter: RecyclerView.Adapter<T>
     ) {
         val spannable = getSpannable(textView)
         spannable.removeSpan(backgroundHighlightSpan)

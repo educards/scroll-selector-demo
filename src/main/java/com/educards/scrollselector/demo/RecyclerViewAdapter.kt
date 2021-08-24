@@ -1,6 +1,5 @@
 package com.educards.scrollselector.demo
 
-import android.content.Context
 import android.text.Spannable
 import android.view.LayoutInflater
 import android.view.View
@@ -9,7 +8,6 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
 class RecyclerViewAdapter(
-    private val context: Context,
     private val data: List<Spannable>
 
 ) : RecyclerView.Adapter<RecyclerViewAdapter.ViewHolder>() {
