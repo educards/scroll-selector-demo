@@ -7,9 +7,7 @@ import android.text.Spannable
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.educards.scrollselector.RecyclerViewDistanceMeasure
 import com.educards.scrollselector.InputParams
-import com.educards.scrollselector.SelectionRatioSolver
 import com.educards.scrollselector.demo.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -18,31 +16,47 @@ class MainActivity : AppCompatActivity() {
         DataBindingUtil.inflate(layoutInflater, R.layout.activity_main, null, false ) as ActivityMainBinding
     }
 
-    private val selectionSolver = SelectionRatioSolver()
     private val inputParams = InputParams()
     private val selectionData = SelectionData()
 
     private val recyclerViewAdapter = RecyclerViewAdapter(DEMO_DATA)
     private val linearLayoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
 
-    private val distanceMeasure by lazy {
-        RecyclerViewDistanceMeasure(
+    private val recyclerViewSentenceSelector by lazy {
+        object : RecyclerViewSentenceSelector<RecyclerViewAdapter.ViewHolder>(
+            this@MainActivity,
             binding.recyclerView,
             recyclerViewAdapter,
-            linearLayoutManager
-        )
+            linearLayoutManager,
+            inputParams
+        ) {
+            override fun onUpdateSelection(selectionRatio: Double?, topDistance: Int?, bottomDistance: Int?) {
+
+                // update sentence selection
+                super.onUpdateSelection(selectionRatio, topDistance, bottomDistance)
+
+                // update debug view
+                selectionData.selectionRatio = selectionRatio
+                selectionData.contentTopDist = topDistance
+                selectionData.contentBottomDist = bottomDistance
+
+                updateSelectionDebugView()
+            }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContentView(binding.root)
+
         initRecyclerView()
         initSelectionDebugView()
-        initRecyclerViewSentenceSelector()
     }
 
     private fun initSelectionDebugView() {
-        binding.selectionDebugView.selectionSolver = selectionSolver
+
+        binding.selectionDebugView.selectionSolver = recyclerViewSentenceSelector.selectionRatioSolver
         binding.selectionDebugView.selectionData = selectionData
         binding.selectionDebugView.selectionParams = inputParams
 
@@ -84,30 +98,6 @@ class MainActivity : AppCompatActivity() {
         binding.recyclerView.setHasFixedSize(true)
         binding.recyclerView.layoutManager = linearLayoutManager
         binding.recyclerView.adapter = recyclerViewAdapter
-    }
-
-    private fun initRecyclerViewSentenceSelector() {
-
-        object : RecyclerViewSentenceSelector<RecyclerViewAdapter.ViewHolder>(
-            this@MainActivity,
-            binding.recyclerView,
-            recyclerViewAdapter,
-            linearLayoutManager,
-            inputParams
-        ) {
-            override fun onUpdateSelection(selectionRatio: Double?, topDistance: Int?, bottomDistance: Int?) {
-
-                // update sentence selection
-                super.onUpdateSelection(selectionRatio, topDistance, bottomDistance)
-
-                // update debug view
-                selectionData.selectionRatio = selectionRatio
-                selectionData.contentTopDist = topDistance
-                selectionData.contentBottomDist = bottomDistance
-                updateSelectionDebugView()
-            }
-        }
-
     }
 
     companion object {
