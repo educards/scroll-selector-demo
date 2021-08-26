@@ -70,11 +70,10 @@ open class RecyclerViewSentenceSelector<VH : RecyclerView.ViewHolder>(
         } else {
             val selectionPx = (recyclerView.height * selectionRatio).toInt()
 
-            val layoutManager = recyclerView.layoutManager as LinearLayoutManager
-            val firstChildPos = layoutManager.findFirstVisibleItemPosition()
-            val lastChildPos = layoutManager.findLastVisibleItemPosition()
+            val firstChildPos = linearLayoutManager.findFirstVisibleItemPosition()
+            val lastChildPos = linearLayoutManager.findLastVisibleItemPosition()
             for (childPos in firstChildPos..lastChildPos) {
-                val childView = findChildByPosition(layoutManager, childPos)
+                val childView = findChildByPosition(linearLayoutManager, childPos)
 
                 if (childView != null && childView.y <= selectionPx && selectionPx < childView.bottom) {
 
@@ -84,7 +83,7 @@ open class RecyclerViewSentenceSelector<VH : RecyclerView.ViewHolder>(
                         // If the span was previously added to another spannable (view)
                         // then we have to explicitly remove the span from this view.
                         if (currentHighlightItemPos >= 0 && currentHighlightItemPos != childPos) {
-                            val textView = findChildByPosition(layoutManager, currentHighlightItemPos)
+                            val textView = findChildByPosition(linearLayoutManager, currentHighlightItemPos)
                             if (textView != null) {
                                 removeSpan(textView, adapter)
                             }
