@@ -23,7 +23,7 @@ class MainActivity : AppCompatActivity() {
     private val linearLayoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
 
     private val recyclerViewSentenceSelector by lazy {
-        object : RecyclerViewSentenceSelector<RecyclerViewAdapter.ViewHolder>(
+        object : RecyclerViewSentenceSelector(
             this@MainActivity,
             binding.recyclerView,
             recyclerViewAdapter,

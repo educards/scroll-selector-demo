@@ -17,13 +17,13 @@ import com.educards.scrollselector.RecyclerViewSelector
 /**
  * [RecyclerViewSelector] which selects a specific sentence of [RecyclerView] child items.
  */
-open class RecyclerViewSentenceSelector<VH : RecyclerView.ViewHolder>(
+open class RecyclerViewSentenceSelector(
     private val context: Context,
     private val recyclerView: RecyclerView,
-    private val adapter: Adapter<VH>,
+    private val adapter: Adapter<*>,
     private val linearLayoutManager: LinearLayoutManager,
     inputParams: InputParams
-) : RecyclerViewSelector<VH>(
+) : RecyclerViewSelector(
     recyclerView,
     adapter,
     linearLayoutManager,
@@ -102,7 +102,7 @@ open class RecyclerViewSentenceSelector<VH : RecyclerView.ViewHolder>(
         textView: TextView,
         childPos: Int,
         lineOffsets: Pair<Int, Int>,
-        adapter: Adapter<VH>
+        adapter: Adapter<*>
     ) {
         val spannable = getSpannable(textView)
         val sentenceDetectionOffset = lineOffsets.first + (lineOffsets.second - lineOffsets.first) / 2
