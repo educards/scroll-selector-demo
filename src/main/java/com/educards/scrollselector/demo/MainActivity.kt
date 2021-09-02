@@ -16,34 +16,12 @@ class MainActivity : AppCompatActivity() {
         DataBindingUtil.inflate(layoutInflater, R.layout.activity_main, null, false ) as ActivityMainBinding
     }
 
+    private val selector by lazy { DebugSelector() }
     private val inputParams = InputParams()
     private val selectionData = SelectionData()
 
     private val recyclerViewAdapter = RecyclerViewAdapter(DEMO_DATA)
     private val linearLayoutManager = LinearLayoutManager(this, RecyclerView.VERTICAL, false)
-
-    private val recyclerViewSentenceSelector by lazy {
-        object : RecyclerViewSentenceSelector(
-            this@MainActivity,
-            binding.recyclerView,
-            recyclerViewAdapter,
-            linearLayoutManager,
-            inputParams
-        ) {
-            override fun onUpdateSelection(selectionRatio: Double?, topDistance: Int?, bottomDistance: Int?) {
-
-                // update sentence selection
-                super.onUpdateSelection(selectionRatio, topDistance, bottomDistance)
-
-                // update debug view
-                selectionData.selectionRatio = selectionRatio
-                selectionData.contentTopDist = topDistance
-                selectionData.contentBottomDist = bottomDistance
-
-                updateSelectionDebugView()
-            }
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,12 +29,13 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         initRecyclerView()
+        initSelector()
         initSelectionDebugView()
     }
 
     private fun initSelectionDebugView() {
 
-        binding.selectionDebugView.selectionSolver = recyclerViewSentenceSelector.selectionRatioSolver
+        binding.selectionDebugView.selectionSolver = selector.selectionRatioSolver
         binding.selectionDebugView.selectionData = selectionData
         binding.selectionDebugView.selectionParams = inputParams
 
@@ -98,6 +77,33 @@ class MainActivity : AppCompatActivity() {
         binding.recyclerView.setHasFixedSize(true)
         binding.recyclerView.layoutManager = linearLayoutManager
         binding.recyclerView.adapter = recyclerViewAdapter
+    }
+
+    private fun initSelector() {
+        selector.init()
+    }
+
+    inner class DebugSelector : RecyclerViewSentenceSelector(
+        this@MainActivity,
+        binding.recyclerView,
+        recyclerViewAdapter,
+        linearLayoutManager,
+        inputParams
+    ) {
+
+        override fun onUpdateSelection(selectionRatio: Double?, topDistance: Int?, bottomDistance: Int?) {
+
+            // update sentence selection
+            super.onUpdateSelection(selectionRatio, topDistance, bottomDistance)
+
+            // update debug view
+            selectionData.selectionRatio = selectionRatio
+            selectionData.contentTopDist = topDistance
+            selectionData.contentBottomDist = bottomDistance
+
+            updateSelectionDebugView()
+        }
+
     }
 
     companion object {
