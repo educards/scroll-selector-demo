@@ -53,7 +53,7 @@ open class RecyclerViewSentenceSelector(
     private var currentHighlightItemPos = -1
     private var currentHighlightOffsets: Pair<Int, Int>? = null
 
-    override fun onUpdateSelection(selectionRatio: Double?, topDistance: Int?, bottomDistance: Int?) {
+    override fun onUpdateSelection(selectionRatio: Double?, scrollDeltaY: Int, topDistance: Int?, bottomDistance: Int?) {
 
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "onSelectionRatioChanged [selectionRatio=$selectionRatio, topDistance=$topDistance, bottomDistance=$bottomDistance]")

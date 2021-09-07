@@ -91,10 +91,10 @@ class MainActivity : AppCompatActivity() {
         inputParams
     ) {
 
-        override fun onUpdateSelection(selectionRatio: Double?, topDistance: Int?, bottomDistance: Int?) {
+        override fun onUpdateSelection(selectionRatio: Double?, scrollDeltaY: Int, topDistance: Int?, bottomDistance: Int?) {
 
             // update sentence selection
-            super.onUpdateSelection(selectionRatio, topDistance, bottomDistance)
+            super.onUpdateSelection(selectionRatio, scrollDeltaY, topDistance, bottomDistance)
 
             // update debug view
             selectionData.selectionRatio = selectionRatio
