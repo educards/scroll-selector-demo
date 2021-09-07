@@ -16,7 +16,7 @@ class MainActivity : AppCompatActivity() {
         DataBindingUtil.inflate(layoutInflater, R.layout.activity_main, null, false ) as ActivityMainBinding
     }
 
-    private val selector by lazy { DebugSelector() }
+    private lateinit var selector: DebugSelector
     private val inputParams = InputParams()
     private val selectionData = SelectionData()
 
@@ -28,8 +28,8 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(binding.root)
 
+        selector = DebugSelector()
         initRecyclerView()
-        initSelector()
         initSelectionDebugView()
     }
 
@@ -77,10 +77,6 @@ class MainActivity : AppCompatActivity() {
         binding.recyclerView.setHasFixedSize(true)
         binding.recyclerView.layoutManager = linearLayoutManager
         binding.recyclerView.adapter = recyclerViewAdapter
-    }
-
-    private fun initSelector() {
-        selector.init()
     }
 
     inner class DebugSelector : RecyclerViewSentenceSelector(
