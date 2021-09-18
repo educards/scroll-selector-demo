@@ -79,7 +79,7 @@ class MainActivity : AppCompatActivity() {
         binding.recyclerView.adapter = recyclerViewAdapter
     }
 
-    inner class DebugSelector : RecyclerViewSentenceSelector(
+    inner class DebugSelector : RecyclerViewSentenceSelector<RecyclerViewAdapter.ViewHolder>(
         this@MainActivity,
         binding.recyclerView,
         recyclerViewAdapter,
